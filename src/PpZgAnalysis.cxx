@@ -88,8 +88,11 @@ PpZgAnalysis::PpZgAnalysis ( const int argc, const char** const argv )
       pars.TriggerName=*parg;
     } else if ( arg == "-ht" ){      
       if ( ++parg == arguments.end() ){ argsokay=false; break; }
-      pars.MinEventEtCut = atof( parg->data());
-      pars.ManualHtCut = atof( parg->data());
+      float ptht =atof( parg->data());
+      if ( ptht>0 ){
+	pars.MinEventEtCut = ptht;
+	pars.ManualHtCut = ptht;
+      }
     // } else if ( arg == "-htled" ){      
     //   if ( ++parg == arguments.end() ){ argsokay=false; break; }
     //   istringstream is(parg->data());
@@ -704,29 +707,7 @@ void InitializeReader(  std::shared_ptr<TStarJetPicoReader> pReader, const TStri
     evCuts->SetReferenceCentralityCut (  6, 8 ); // 6,8 for 0-20%
   }
         
-  // // Explicitly choose bad tower list here
-  // TStarJetPicoTowerCuts* towerCuts = reader.GetTowerCuts();
-  // if ( InputName.Contains("NPE") ){
-  //   towerCuts->AddBadTowers( TString( getenv("STARPICOPATH" )) + "/badTowerList_y11.txt");
-  // } else {
-  //   towerCuts->AddBadTowers( TString( getenv("STARPICOPATH" )) + "/Combined_y7_AuAu_Nick.txt");
-  //   towerCuts->AddBadTowers( TString( getenv("STARPICOPATH" )) + "/Combined_y7_PP_Nick.txt");
-  //   // towerCuts->AddBadTowers( TString( getenv("STARPICOPATH" )) + "/OrigY7MBBadTowers.txt");
-  //   // towerCuts->AddBadTowers( TString( getenv("STARPICOPATH" )) + "/Combined_y7_AuAu_Nick.txt");
-  //   // towerCuts->AddBadTowers( TString( getenv("STARPICOPATH" )) + "/Combined_y7_PP_Nick.txt");
-  // }
-  // Add the following to y11 as well, once we're embedding!
-  // towerCuts->AddBadTowers( TString( getenv("STARPICOPATH" )) + "/Combined_y7_PP_Nick.txt");
-  
-  // DEBUG ONLY
-  // towerCuts->AddBadTowers( "emptyBadTowerList.txt");
-  
-  // // DEBUG: KK: Reject bad phi strip  
-  // towerCuts->SetPhiCut(0, -1.2);
-  // TStarJetPicoTrackCuts* trackCuts = reader.GetTrackCuts();
-  // trackCuts->SetPhiCut(0, -1.2);
   reader.Init(NEvents);
-
   TStarJetPicoDefinitions::SetDebugLevel(PicoDebugLevel);
 }
 //----------------------------------------------------------------------
