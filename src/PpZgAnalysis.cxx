@@ -232,7 +232,8 @@ PpZgAnalysis::PpZgAnalysis ( const int argc, const char** const argv )
   
   // Jet candidate selectors
   // -----------------------
-  select_jet_eta     = SelectorAbsRapMax( EtaJetCut);
+  // select_jet_eta     = SelectorAbsRapMax( EtaJetCut );
+  select_jet_eta     = SelectorAbsEtaMax( EtaJetCut );
   select_jet_pt      = SelectorPtRange( pars.PtJetMin, pars.PtJetMax );
   select_jet         = select_jet_eta * select_jet_pt;     
   
@@ -640,7 +641,12 @@ EVENTRESULT PpZgAnalysis::RunEvent (){
 
   JetAnalyzer& JA = *pJA;      
   vector<PseudoJet> JAResult = sorted_by_pt( select_jet ( JA.inclusive_jets() ) );
-
+  // for ( auto& jet : JAResult ){
+  //   if ( fabs(jet.eta())>0.6 ){
+  //     cout << jet << endl;
+  //   }
+  // }
+  
   if ( JAResult.size()==0 ) {
     return EVENTRESULT::NOJETS;
   }
