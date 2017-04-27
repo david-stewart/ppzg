@@ -93,12 +93,14 @@ int main( int argc, const char** argv ){
     } else if ( pars.InputName.Contains("Y14") ){
       towerCuts->AddBadTowers( TString( getenv("STARPICOPATH" )) + "/Alternate_QuickAndDirty_y14.txt");
       towerCuts->AddBadTowers( TString( getenv("STARPICOPATH" )) + "/Combined_y7_PP_Nick.txt");
+    // } else {
+    //   cout << getenv("STARPICOPATH" ) << "/Combined_y7_AuAu_Nick.txt" << endl;
+    //   towerCuts->AddBadTowers( TString( getenv("STARPICOPATH" )) + "/Combined_y7_AuAu_Nick.txt");
+    //   cout << getenv("STARPICOPATH" ) << "/Combined_y7_PP_Nick.txt" << endl;
+    //   towerCuts->AddBadTowers( TString( getenv("STARPICOPATH" )) + "/Combined_y7_PP_Nick.txt");
+    // }
     } else {
-      cout << getenv("STARPICOPATH" ) << "/Combined_y7_AuAu_Nick.txt" << endl;
       cout << getenv("STARPICOPATH" ) << "/Combined_y7_PP_Nick.txt" << endl;
-
-      // towerCuts->AddBadTowers( TString( getenv("STARPICOPATH" )) + "/OrigY7MBBadTowers.txt");    
-      towerCuts->AddBadTowers( TString( getenv("STARPICOPATH" )) + "/Combined_y7_AuAu_Nick.txt");
       towerCuts->AddBadTowers( TString( getenv("STARPICOPATH" )) + "/Combined_y7_PP_Nick.txt");
     }
   }
