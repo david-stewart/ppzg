@@ -27,6 +27,9 @@ AutoDict_*
 src/dict.*
 *_cxx.d
 
+# backups
+src/bak
+
 # pictures
 *png
 *pdf
