@@ -43,17 +43,23 @@ setenv pcmin 0.2
 #setenv pcmin 2.0
 #setenv NameBase HighConsGroom
 
-setenv R 0.4
-setenv ht 5.4
-setenv trig ppHT
+# setenv R 0.4
+# setenv ht 5.4
+# setenv trig ppHT
 # setenv bg 0
 # setenv OutBase Pp_HT54_NoEff_NoBgSub
+
+setenv R 0.4
+setenv ht 5.4
+setenv trig ppJP
+setenv bg 0
+setenv OutBase Pp_JP_HT54_NoEff_NoBgSub
 
 # setenv bg 1
 # setenv OutBase Pp_HT54_NoEff_AreaSub
 
-setenv bg 2
-setenv OutBase Pp_HT54_NoEff_ConstSubPre
+# setenv bg 2
+# setenv OutBase Pp_HT54_NoEff_ConstSubPre
 
 set noglob
 set Files       = Data/ppHT/*.root

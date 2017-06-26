@@ -18,9 +18,11 @@ set ExecPath = `pwd`
 # set inbase  = McGeant_NoEff_NoBg_MB_picoDst
 # set outbase = McGeant_NoEff_NoBg_MB
 
-set inbase  = Geant_NoEff_NoBg_HT54_picoDst
-set outbase = Geant_NoEff_NoBg_HT54
+# set inbase  = Geant_NoEff_NoBg_HT54_picoDst
+# set outbase = Geant_NoEff_NoBg_HT54
 
+set inbase  = Geant_NoEff_NoBg_MB_picoDst
+set outbase = Geant_NoEff_NoBg_MB
 
 set binjobs=''
 set binouts=''
