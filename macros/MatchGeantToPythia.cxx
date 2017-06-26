@@ -1,3 +1,7 @@
+// HAS to be compiled,
+// root -l macros/MatchGeantToPythia.cxx+
+
+
 #include <TF1.h>
 #include <TH1.h>
 #include <TH2.h>
@@ -20,6 +24,9 @@
 #include <TRandom.h>
 #include <TSystem.h>
 
+#include <TStarJetVector.h>
+#include <TStarJetVectorJet.h>
+
 #include <iostream>
 #include <vector>
 #include <string>
@@ -35,11 +42,33 @@
 using namespace std;
 
 // Load helper macro
-#include "GeantWeightReject.hh"
+#include "NewGeantWeightReject.hh"
+
+// ----------------------------------------------------
+class RootGroomingResultStruct{
+public:
+  TStarJetVectorJet orig;
+  TStarJetVectorJet groomed;
+  double zg;
+  RootGroomingResultStruct ( TStarJetVectorJet orig, TStarJetVectorJet groomed, double zg ) : orig(orig), groomed(groomed),zg(zg){};
+  
+  // static bool origptgreater( GroomingResultStruct const & a, GroomingResultStruct const & b) { 
+  //   return a.orig.pt()>b.orig.pt();
+  // };
+  
+  // static bool groomedptgreater( GroomingResultStruct const & a, GroomingResultStruct const & b) { 
+  //   return a.groomed.pt()>b.groomed.pt();
+  // }; 
+
+  ClassDef(RootGroomingResultStruct,1)
+
+};
+
+typedef pair<RootGroomingResultStruct,RootGroomingResultStruct> MatchedRootGroomingResultStruct;
 
 int MatchGeantToPythia (
-			// TString PpLevelFile = "Results/Geant_NoEff_NoBg_HT54_3_4.root",
-			// TString McLevelFile = "Results/McGeant_NoEff_NoBg_MB_3_4.root" // Reference (particle level) jets
+			// TString PpLevelFile = "Results/Geant_NoEff_NoBg_HT54_25_35.root",
+			// TString McLevelFile = "Results/McGeant_NoEff_NoBg_MB_25_35.root" // Reference (particle level) jets
 			TString PpLevelFile = "Results/Geant_NoEff_NoBg_HT54.root",
 			TString McLevelFile = "Results/McGeant_NoEff_NoBg_MB.root" // Reference (particle level) jets
 			) {
@@ -54,6 +83,7 @@ int MatchGeantToPythia (
     
   float MinJetPt = 5.0;
   bool UseMiss=true;
+  bool UseFakes=true;
   // The embedding data has some strange quirks,
   // specifically things like 10 GeV "true" jets reconstructed at 50 GeV
   // My suspicion is that some pythia particles were not properly recorded.
@@ -71,7 +101,7 @@ int MatchGeantToPythia (
   // new TCanvas;
   // JetTreeMc->Draw("fPrimaryTracks.GetEta():fPrimaryTracks.GetPhi()","fPrimaryTracks.GetPt()*(Entry$==5570  && abs(fPrimaryTracks.GetEta())<1.2  && fPrimaryTracks.GetPt()>0.2  )","colz");  
   // Here's an option to reject them based on a simple cut.    
-  bool RejectOutliers=true;
+  bool RejectOutliers= false; // NOT working
   bool RejectHiweights= true;
   
   float RCut = 0.4;
@@ -85,7 +115,11 @@ int MatchGeantToPythia (
   OutFileName.ReplaceAll(".root","_");
   if ( UseMiss ) OutFileName += "WithMisses_";
   else OutFileName += "NoMisses_";
+  if ( UseFakes ) OutFileName += "WithFakes_";
+  else OutFileName += "NoFakes_";
   if ( RejectOutliers ) OutFileName += "NoOutliers_";
+  if ( !RejectHiweights ) OutFileName += "WithHiWeights_";  
+    
   OutFileName += "TrainedWith_";
   OutFileName += gSystem->BaseName(McLevelFile);
   
@@ -120,7 +154,17 @@ int MatchGeantToPythia (
   McChain->GetBranch("Jets")->SetAutoDelete(kFALSE);
   McChain->SetBranchAddress("Jets", &McJets);
 
-
+  TClonesArray* McGroomedJets = new TClonesArray("TStarJetVectorJet");
+  McChain->GetBranch("GroomedJets")->SetAutoDelete(kFALSE);
+  McChain->SetBranchAddress("GroomedJets", &McGroomedJets);
+  
+  // For MC, and in general without an explicit HT cut, these are most likely meaningless
+  TStarJetVector* McTriggerHT = new TStarJetVector(); // The HT particle
+  McChain->SetBranchAddress("TriggerHT", &McTriggerHT);
+  
+  TStarJetVectorJet* McHTJet = new TStarJetVectorJet(); // The jet containing it
+  McChain->SetBranchAddress("HTJet", &McHTJet);  
+  
   int mceventid;
   int mcrunid;
   double mcweight;     // Double-check, should be the same as below
@@ -134,6 +178,7 @@ int MatchGeantToPythia (
   double mczg[1000];
   McChain->SetBranchAddress("zg", mczg );
 
+
   // Set up pp events
   // ----------------
   // TChain* PpChain = new TChain("ResultTree");
@@ -143,12 +188,21 @@ int MatchGeantToPythia (
   TTree* PpChain = (TTree*) Ppf->Get("ResultTree");
   PpChain->BuildIndex("runid","eventid");
 
-  // TVirtualIndex* ind = PpChain->GetTreeIndex();
-  // ind->Print();
-
   TClonesArray* PpJets = new TClonesArray("TStarJetVectorJet");
   PpChain->GetBranch("Jets")->SetAutoDelete(kFALSE);
   PpChain->SetBranchAddress("Jets", &PpJets);
+
+  TClonesArray* PpGroomedJets = new TClonesArray("TStarJetVectorJet");
+  PpChain->GetBranch("GroomedJets")->SetAutoDelete(kFALSE);
+  PpChain->SetBranchAddress("GroomedJets", &PpGroomedJets);
+
+  // For MC, and in general without an explicit HT cut, these are most likely meaningless
+  TStarJetVector* PpTriggerHT = new TStarJetVector(); // The HT particle
+  PpChain->SetBranchAddress("TriggerHT", &PpTriggerHT);
+  
+  TStarJetVectorJet* PpHTJet = new TStarJetVectorJet(); // The jet containing it
+  PpChain->SetBranchAddress("HTJet", &PpHTJet);  
+
 
   int ppeventid;
   int pprunid;
@@ -170,59 +224,37 @@ int MatchGeantToPythia (
   TH1::SetDefaultSumw2(true);
   TH2::SetDefaultSumw2(true);
 
-  // int nPtBins = 140;
-  // float ptmin=10;
-  // float ptmax=80;
-
   int nPtBins = 80;
   float ptmin=0;
   float ptmax=80;
 
-  // // Trigger jet info
-  // Old
-  // TH1D* McTrigPtMatched = new TH1D( "McTrigPtMatched",";Trigger p_{T}^{Jet} [GeV/c]", nPtBins, ptmin, ptmax );
-  // TH1D* DetTrigPt = new TH1D( "DetTrigPt",";Trigger p_{T}^{Jet} [GeV/c]", nPtBins, ptmin, ptmax );
-  // TH2D* TriggerJetForLostMc = new TH2D( "TriggerJetForLostMc", ";p_{T};#eta", 120, 10, 70, 100,-1,1 );
+  
+  // TH1D* McTriggerPt = new TH1D( "McTriggerPt",";Trigger p_{T}^{Part} [GeV/c]", nPtBins, ptmin, ptmax );
+  // TH1D* PpTriggerPt = new TH1D( "PpTriggerPt",";Trigger p_{T}^{Det} [GeV/c]", nPtBins, ptmin, ptmax );
 
-  // New
-  TH1D* McTriggerPt = new TH1D( "McTriggerPt",";Trigger p_{T}^{Part} [GeV/c]", nPtBins, ptmin, ptmax );
-  TH1D* PpTriggerPt = new TH1D( "PpTriggerPt",";Trigger p_{T}^{Det} [GeV/c]", nPtBins, ptmin, ptmax );
+  // TH2D* McPpTriggerPt = new TH2D( "McPpTriggerPt",";p_{T}^{Part} [GeV/c];p_{T}^{Det} [GeV/c]", nPtBins, ptmin, ptmax, nPtBins, ptmin, ptmax );
 
-  TH2D* McPpTriggerPt = new TH2D( "McPpTriggerPt",";p_{T}^{Part} [GeV/c];p_{T}^{Det} [GeV/c]", nPtBins, ptmin, ptmax, nPtBins, ptmin, ptmax );
-
-  TH2D* DeltaTriggerPt = new TH2D( "DeltaTriggerPt",";p_{T}^{Part};Trigger p_{T}^{Part}-p_{T}^{Det} [GeV/c]", nPtBins, ptmin, ptmax, 100, -40, 60 );
-  TH2D* RelDeltaTriggerPt = new TH2D( "RelDeltaTriggerPt",";p_{T}^{Part};Trigger (p_{T}^{Part}-p_{T}^{Det}) / p_{T}^{Part}", nPtBins, ptmin, ptmax, 100, -2, 2 );
-
-  // Debug
-  TH1D* hhh = new TH1D( "hhh","",10, 0.05,0.55 );
-
+  // TH2D* DeltaTriggerPt = new TH2D( "DeltaTriggerPt",";p_{T}^{Part};Trigger p_{T}^{Part}-p_{T}^{Det} [GeV/c]", nPtBins, ptmin, ptmax, 100, -40, 60 );
+  // TH2D* RelDeltaTriggerPt = new TH2D( "RelDeltaTriggerPt",";p_{T}^{Part};Trigger (p_{T}^{Part}-p_{T}^{Det}) / p_{T}^{Part}", nPtBins, ptmin, ptmax, 100, -2, 2 );
 
   // Set up response matrix
   // ----------------------
-  // int nZgBinsTrue = 20;
-  // float zgminTrue = 0;
-  // float zgmaxTrue = 0.5;
-  // int nZgBinsMeas = 20;
-  // float zgminMeas = 0;
-  // float zgmaxMeas = 0.5;
-  // int nZgBinsTrue = 40;
   int nZgBinsTrue = 20;
-  float zgminTrue = 0.05;
-  float zgmaxTrue = 0.55;
-  int nZgBinsMeas = 20;
-  float zgminMeas = 0.05;
-  float zgmaxMeas = 0.55;
-  // int nPtBinsTrue =  60;
-  // float ptminTrue =   0;
-  // float ptmaxTrue =  60;
-  // int nPtBinsMeas =  50;
-  // float ptminMeas =  10;
-  // float ptmaxMeas =  60;
+  float zgminTrue = 0.00;
+  float zgmaxTrue = 0.5;
+  // int nZgBinsTrue = 20;
+  // float zgminTrue = 0.05;
+  // float zgmaxTrue = 0.55;
+  
+  int nZgBinsMeas = nZgBinsTrue;
+  float zgminMeas = zgminTrue;
+  float zgmaxMeas = zgmaxTrue;
 
-  // int nPtBinsTrue =  nPtBins;
-  // float ptminTrue =  ptmin;
-  // float ptmaxTrue =  ptmax;
+  // int nZgBinsMeas = 20;
+  // float zgminMeas = 0.05;
+  // float zgmaxMeas = 0.55;
 
+  
   int nPtBinsTrue =  nPtBins;
   float ptminTrue =  ptmin;
   float ptmaxTrue =  ptmax;
@@ -231,37 +263,44 @@ int MatchGeantToPythia (
   // float ptminMeas =  10;
   // float ptmaxMeas =  80;
   int nPtBinsMeas =  60;
-  float ptminMeas =  10;
-  float ptmaxMeas =  70;
+  float ptminMeas =  0;
+  float ptmaxMeas =  60;
 
-  // RooUnfoldResponse LeadPtResponse ( nPtBinsMeas, ptminMeas, ptmaxMeas, nPtBinsTrue, ptminTrue, ptmaxTrue );
-  RooUnfoldResponse TrigPtResponse ( nPtBinsMeas, ptminMeas, ptmaxMeas, nPtBinsTrue, ptminTrue, ptmaxTrue );
+  RooUnfoldResponse IncPtResponse    ( nPtBinsMeas, ptminMeas, ptmaxMeas, nPtBinsTrue, ptminTrue, ptmaxTrue );
+  RooUnfoldResponse TrigPtResponse   ( nPtBinsMeas, ptminMeas, ptmaxMeas, nPtBinsTrue, ptminTrue, ptmaxTrue );
   RooUnfoldResponse RecoilPtResponse ( nPtBinsMeas, ptminMeas, ptmaxMeas, nPtBinsTrue, ptminTrue, ptmaxTrue );
 
   // 2D unfolding:
   TH2D* hTrue= new TH2D ("hTrue", "Truth", nPtBinsTrue, ptminTrue, ptmaxTrue, nZgBinsTrue, zgminTrue, zgmaxTrue);
   TH2D* hMeas= new TH2D ("hMeas", "Measured", nPtBinsMeas, ptminMeas, ptmaxMeas, nZgBinsMeas, zgminMeas, zgmaxMeas);
-  RooUnfoldResponse TrigPtZgResponse2D;
-  TrigPtZgResponse2D.Setup (hMeas, hTrue );
 
-  TH2D* hRecoilTrue= new TH2D ("hRecoilTrue", "Truth", nPtBinsTrue, ptminTrue, ptmaxTrue, nZgBinsTrue, zgminTrue, zgmaxTrue);
-  TH2D* hRecoilMeas= new TH2D ("hRecoilMeas", "Measured", nPtBinsMeas, ptminMeas, ptmaxMeas, nZgBinsMeas, zgminMeas, zgmaxMeas);
-  RooUnfoldResponse RecoilPtZgResponse2D;
-  RecoilPtZgResponse2D.Setup (hMeas, hTrue );
+  RooUnfoldResponse IncPtZgResponse2D;
+  IncPtZgResponse2D.Setup (hMeas, hTrue );
 
-  TH2D* TrigTruth2D = new TH2D( "TrigTruth2D", "TRAIN z_{g}^{lead} vs. p_{T}^{lead}, Pythia6;p_{T}^{lead};z_{g}^{lead}", nPtBinsTrue, ptminTrue, ptmaxTrue, nZgBinsTrue, zgminTrue, zgmaxTrue);
-  TH2D* TrigMeas2D  = new TH2D( "TrigMeas2D", "TRAIN z_{g}^{lead} vs. p_{T}^{lead}, Pythia6 #oplus GEANT;p_{T}^{lead};z_{g}^{lead}", nPtBinsMeas, ptminMeas, ptmaxMeas, nZgBinsMeas, zgminMeas, zgmaxMeas);
-  TH2D* TrigTestTruth2D = new TH2D( "TrigTestTruth2D", "TEST z_{g}^{lead} vs. p_{T}^{lead}, Pythia6;p_{T}^{lead};z_{g}^{lead}", nPtBinsTrue, ptminTrue, ptmaxTrue, nZgBinsTrue, zgminTrue, zgmaxTrue);
-  TH2D* TrigTestMeas2D  = new TH2D( "TrigTestMeas2D", "TEST z_{g}^{lead} vs. p_{T}^{lead}, Pythia6 #oplus GEANT;p_{T}^{lead};z_{g}^{lead}", nPtBinsMeas, ptminMeas, ptmaxMeas, nZgBinsMeas, zgminMeas, zgmaxMeas);
+  // RooUnfoldResponse TrigPtZgResponse2D;
+  // TrigPtZgResponse2D.Setup (hMeas, hTrue );
 
-  TH2D* RecoilTruth2D = new TH2D( "RecoilTruth2D", "TRAIN z_{g}^{lead} vs. p_{T}^{lead}, Pythia6;p_{T}^{lead};z_{g}^{lead}", nPtBinsTrue, ptminTrue, ptmaxTrue, nZgBinsTrue, zgminTrue, zgmaxTrue);
-  TH2D* RecoilMeas2D  = new TH2D( "RecoilMeas2D", "TRAIN z_{g}^{lead} vs. p_{T}^{lead}, Pythia6 #oplus GEANT;p_{T}^{lead};z_{g}^{lead}", nPtBinsMeas, ptminMeas, ptmaxMeas, nZgBinsMeas, zgminMeas, zgmaxMeas);
-  TH2D* RecoilTestTruth2D = new TH2D( "RecoilTestTruth2D", "TEST z_{g}^{lead} vs. p_{T}^{lead}, Pythia6;p_{T}^{lead};z_{g}^{lead}", nPtBinsTrue, ptminTrue, ptmaxTrue, nZgBinsTrue, zgminTrue, zgmaxTrue);
-  TH2D* RecoilTestMeas2D  = new TH2D( "RecoilTestMeas2D", "TEST z_{g}^{lead} vs. p_{T}^{lead}, Pythia6 #oplus GEANT;p_{T}^{lead};z_{g}^{lead}", nPtBinsMeas, ptminMeas, ptmaxMeas, nZgBinsMeas, zgminMeas, zgmaxMeas);
+  // RooUnfoldResponse RecoilPtZgResponse2D;
+  // RecoilPtZgResponse2D.Setup (hMeas, hTrue );
 
-  TH2D* McPpTriggerZg2030 = new TH2D( "McPpTriggerZg2030",";z_{g}^{Part};z_{g}^{Det}", nZgBinsTrue, zgminTrue, zgmaxTrue, nZgBinsMeas, zgminMeas, zgmaxMeas );
-  TH2D* McPpTriggerZg10plus = new TH2D( "McPpTriggerZg10plus",";z_{g}^{Part};z_{g}^{Det}", nZgBinsTrue, zgminTrue, zgmaxTrue, nZgBinsMeas, zgminMeas, zgmaxMeas );
-  TH3D* McPpTriggerZg3d = new TH3D( "McPpTriggerZg3d",";z_{g}^{Part};z_{g}^{Det};p_{T}^{truth}", nZgBinsTrue, zgminTrue, zgmaxTrue, nZgBinsMeas, zgminMeas, zgmaxMeas, 12, 0, 60 );
+  TH2D* IncTruth2D = new TH2D( "IncTruth2D", "TRAIN z_{g}^{lead} vs. p_{T}^{lead}, Pythia6;p_{T}^{lead};z_{g}^{lead}", nPtBinsTrue, ptminTrue, ptmaxTrue, nZgBinsTrue, zgminTrue, zgmaxTrue);
+  TH2D* IncMeas2D  = new TH2D( "IncMeas2D", "TRAIN z_{g}^{lead} vs. p_{T}^{lead}, Pythia6 #oplus GEANT;p_{T}^{lead};z_{g}^{lead}", nPtBinsMeas, ptminMeas, ptmaxMeas, nZgBinsMeas, zgminMeas, zgmaxMeas);
+  TH2D* IncTestTruth2D = new TH2D( "IncTestTruth2D", "TEST z_{g}^{lead} vs. p_{T}^{lead}, Pythia6;p_{T}^{lead};z_{g}^{lead}", nPtBinsTrue, ptminTrue, ptmaxTrue, nZgBinsTrue, zgminTrue, zgmaxTrue);
+  TH2D* IncTestMeas2D  = new TH2D( "IncTestMeas2D", "TEST z_{g}^{lead} vs. p_{T}^{lead}, Pythia6 #oplus GEANT;p_{T}^{lead};z_{g}^{lead}", nPtBinsMeas, ptminMeas, ptmaxMeas, nZgBinsMeas, zgminMeas, zgmaxMeas);
+
+  // TH2D* TrigTruth2D = new TH2D( "TrigTruth2D", "TRAIN z_{g}^{lead} vs. p_{T}^{lead}, Pythia6;p_{T}^{lead};z_{g}^{lead}", nPtBinsTrue, ptminTrue, ptmaxTrue, nZgBinsTrue, zgminTrue, zgmaxTrue);
+  // TH2D* TrigMeas2D  = new TH2D( "TrigMeas2D", "TRAIN z_{g}^{lead} vs. p_{T}^{lead}, Pythia6 #oplus GEANT;p_{T}^{lead};z_{g}^{lead}", nPtBinsMeas, ptminMeas, ptmaxMeas, nZgBinsMeas, zgminMeas, zgmaxMeas);
+  // TH2D* TrigTestTruth2D = new TH2D( "TrigTestTruth2D", "TEST z_{g}^{lead} vs. p_{T}^{lead}, Pythia6;p_{T}^{lead};z_{g}^{lead}", nPtBinsTrue, ptminTrue, ptmaxTrue, nZgBinsTrue, zgminTrue, zgmaxTrue);
+  // TH2D* TrigTestMeas2D  = new TH2D( "TrigTestMeas2D", "TEST z_{g}^{lead} vs. p_{T}^{lead}, Pythia6 #oplus GEANT;p_{T}^{lead};z_{g}^{lead}", nPtBinsMeas, ptminMeas, ptmaxMeas, nZgBinsMeas, zgminMeas, zgmaxMeas);
+
+  // TH2D* RecoilTruth2D = new TH2D( "RecoilTruth2D", "TRAIN z_{g}^{lead} vs. p_{T}^{lead}, Pythia6;p_{T}^{lead};z_{g}^{lead}", nPtBinsTrue, ptminTrue, ptmaxTrue, nZgBinsTrue, zgminTrue, zgmaxTrue);
+  // TH2D* RecoilMeas2D  = new TH2D( "RecoilMeas2D", "TRAIN z_{g}^{lead} vs. p_{T}^{lead}, Pythia6 #oplus GEANT;p_{T}^{lead};z_{g}^{lead}", nPtBinsMeas, ptminMeas, ptmaxMeas, nZgBinsMeas, zgminMeas, zgmaxMeas);
+  // TH2D* RecoilTestTruth2D = new TH2D( "RecoilTestTruth2D", "TEST z_{g}^{lead} vs. p_{T}^{lead}, Pythia6;p_{T}^{lead};z_{g}^{lead}", nPtBinsTrue, ptminTrue, ptmaxTrue, nZgBinsTrue, zgminTrue, zgmaxTrue);
+  // TH2D* RecoilTestMeas2D  = new TH2D( "RecoilTestMeas2D", "TEST z_{g}^{lead} vs. p_{T}^{lead}, Pythia6 #oplus GEANT;p_{T}^{lead};z_{g}^{lead}", nPtBinsMeas, ptminMeas, ptmaxMeas, nZgBinsMeas, zgminMeas, zgmaxMeas);
+
+  // TH2D* McPpTriggerZg2030 = new TH2D( "McPpTriggerZg2030",";z_{g}^{Part};z_{g}^{Det}", nZgBinsTrue, zgminTrue, zgmaxTrue, nZgBinsMeas, zgminMeas, zgmaxMeas );
+  // TH2D* McPpTriggerZg10plus = new TH2D( "McPpTriggerZg10plus",";z_{g}^{Part};z_{g}^{Det}", nZgBinsTrue, zgminTrue, zgmaxTrue, nZgBinsMeas, zgminMeas, zgmaxMeas );
+  // TH3D* McPpTriggerZg3d = new TH3D( "McPpTriggerZg3d",";z_{g}^{Part};z_{g}^{Det};p_{T}^{truth}", nZgBinsTrue, zgminTrue, zgmaxTrue, nZgBinsMeas, zgminMeas, zgmaxMeas, 12, 0, 60 );
 
   // ------------------------
   // Loop over particle level
@@ -271,8 +310,10 @@ int MatchGeantToPythia (
   cout << "------------------------" << endl;
 
   int missed=0;
-  for ( Long64_t mcEvi = 0; mcEvi< McChain->GetEntries() ; ++mcEvi ){
-    if ( !(mcEvi%10000) ) cout << "Working on " << mcEvi << " / " << McChain->GetEntries() << endl;
+  int N = McChain->GetEntries();
+  //  N=500000;
+  for ( Long64_t mcEvi = 0; mcEvi<N  ; ++mcEvi ){
+    if ( !(mcEvi%10000) ) cout << "Working on " << mcEvi << " / " << N << endl;
     McChain->GetEntry(mcEvi);
 
     if ( McJets->GetEntries() != mcnjets ){
@@ -280,376 +321,456 @@ int MatchGeantToPythia (
       return -1;
     }
     
+    // Fill results in vectors for easier manipulation
+    // -----------------------------------------------
+    // Also check whether there's something true in the acceptance
+    bool TruthInAcceptance=false;
+    vector<RootGroomingResultStruct> mcresult;
+    for (int j=0; j<mcnjets; ++j ){
+      TStarJetVectorJet* mcjet = (TStarJetVectorJet*) McJets->At(j);
+      TStarJetVectorJet* mcgjet = (TStarJetVectorJet*) McGroomedJets->At(j);
+
+      // Skip high weight outliers
+      // -------------------------
+      if ( RejectHiweights && NewGeantWeightReject ( 0.4, mcjet->Pt(), mcweight, 2 ) )  {
+	cout << "Skipping JET with pt=" << mcjet->Pt() << " due to high weight" << endl;
+	continue;
+      }
+
+      // // DEBUG, for now
+      // // force truth to have positive zg
+      // if ( mczg[j] < 0.1 ) continue; 
+
+      // Ok, record
+      if ( fabs ( mcjet->Eta() ) < EtaCut ) {
+	mcresult.push_back( RootGroomingResultStruct(*mcjet, *mcgjet, mczg[j]) );
+	TruthInAcceptance=true;
+      }
+    }
+
+    if ( !TruthInAcceptance ) {
+      // Skip this event, but don't count it as a loss
+      continue;
+    }
+
+
+
+    // Record Truth
+    // ------------
+    for ( vector<RootGroomingResultStruct>::iterator mcit = mcresult.begin(); mcit != mcresult.end(); ++mcit ){
+      if ( !PrepClosure || mcEvi%2 == 0)    IncTruth2D->Fill( mcit->orig.Pt(), mcit->zg, mcweight );
+      if ( !PrepClosure || mcEvi%2 == 1)    IncTestTruth2D->Fill( mcit->orig.Pt(), mcit->zg, mcweight );
+    }
+
     // Get corresponding pp event
     // --------------------------
     Long64_t ppevi=-1;
     ppevi = PpChain->GetEntryNumberWithIndex( mcrunid, mceventid );
 
-    // bool missed = false;
     if ( ppevi < 0 ){      
-      // // Here is where we for the first time could file for loss
-      // if ( UseMiss ){
-      // 	if ( !PrepClosure || mcEvi%2 == 0){
-      // 	  TrigPtResponse.Miss( McT->Pt(), mcweight );
-      // 	  TrigPtZgResponse2D.Miss( McT->Pt(), mczgtriglo, mcweight );
-      // 	}
-      // 	if ( HasAway ) {
-      // 	  if ( !PrepClosure || mcEvi%2 == 0) {
-      // 	    RecoilPtResponse.Miss( McA->Pt(), mcweight );
-      // 	    RecoilPtZgResponse2D.Miss( McA->Pt(), mczgawaylo, mcweight );
-      // 	  }
-      // 	}
-      // }
-      
-      // Skip this event
-      // cout << " Skipped" << endl;
-      missed++;
-      continue;
+      // Here is where we for the first time could file for loss
+      if ( UseMiss ){
+      	if ( !PrepClosure || mcEvi%2 == 0 ){
+	  for ( vector<RootGroomingResultStruct>::iterator mcit = mcresult.begin(); mcit != mcresult.end(); ++mcit ){
+	    IncPtResponse.Miss( mcit->orig.Pt(), mcweight );
+	    IncPtZgResponse2D.Miss2D( mcit->orig.Pt(), mcit->zg, mcweight );
+	  }
+	}
+	// Skip this event
+	// cout << " Skipped" << endl;
+	missed++;
+	continue;
+      }
     }
+
+    
+    // Get pp
+    // ------
     PpChain->GetEntry(ppevi);
 
-    // cout << "=======================================" << endl;
-    for (int j=0; j<mcnjets; ++j ){
-      TStarJetVectorJet* mcjet = (TStarJetVectorJet*) McJets->At(j);
-      // cout << j << "  " << mcjet->Pt() << "  " << mczg[j] << endl;
-    }
-
+    // Fill results in vectors for easier manipulation
+    // -----------------------------------------------
+    vector<RootGroomingResultStruct> ppresult;
     for (int j=0; j<ppnjets; ++j ){
       TStarJetVectorJet* ppjet = (TStarJetVectorJet*) PpJets->At(j);
-      // cout << j << "  " << ppjet->Pt() << "  " << ppzg[j] << endl;
+      TStarJetVectorJet* ppgjet = (TStarJetVectorJet*) PpGroomedJets->At(j);
+      
+      if ( RejectHiweights && NewGeantWeightReject ( 0.4, ppjet->Pt(), mcweight, 12 ) )  {
+	cout << "Skipping RECO JET with pt=" << ppjet->Pt() << " due to high weight" << endl;
+	continue;
+      }
+      
+      // // DEBUG, for now
+      // // force truth to have positive zg
+      // if ( ppzg[j] < 0.1 ) continue; 
+
+      // Ok, record
+      if ( fabs ( ppjet->Eta() ) < EtaCut ) {
+	ppresult.push_back( RootGroomingResultStruct(*ppjet, *ppgjet, ppzg[j]) );
+      }
+    }
+
+    // Record Measured
+    // ---------------
+    for ( vector<RootGroomingResultStruct>::iterator ppit = ppresult.begin(); ppit != ppresult.end(); ++ppit ){
+      if ( !PrepClosure || mcEvi%2 == 0)    IncMeas2D->Fill( ppit->orig.Pt(), ppit->zg, ppweight );
+      if ( !PrepClosure || mcEvi%2 == 1)    IncTestMeas2D->Fill( ppit->orig.Pt(), ppit->zg, ppweight );
+    }
+
+    // cout << mcresult.size() << " + " << ppresult.size() << " = " << mcresult.size() + ppresult.size() << endl;
+    
+    // Sort them together
+    // ------------------
+    vector<MatchedRootGroomingResultStruct> MatchedResult;
+    for ( vector<RootGroomingResultStruct>::iterator mcit = mcresult.begin(); mcit != mcresult.end(); ){
+      bool matched=false;
+      for ( vector<RootGroomingResultStruct>::iterator ppit = ppresult.begin(); ppit != ppresult.end(); ){
+	if ( mcit->orig.DeltaR( ppit->orig )< RCut ){
+	  MatchedResult.push_back ( MatchedRootGroomingResultStruct ( *mcit, *ppit ) );
+	  ppit = ppresult.erase( ppit );
+	  matched=true;
+	  break;
+	} else{
+	  ++ppit;
+	}
+      }
+      if ( matched ) {
+	mcit = mcresult.erase( mcit );
+      } else {
+	++mcit;
+      }
+    }
+
+    // cout << "  --> " << 2*MatchedResult.size() << " + " << mcresult.size() << " + " << ppresult.size() << " = " << 2*MatchedResult.size() + mcresult.size() + ppresult.size() << endl;
+
+    // Now MatchedResult contains all matches, the remainder in mcresult is missed, the remainder in ppresult is fake
+    // cout << "ppresult.size() = " << ppresult.size() << endl;
+    // if ( ppresult.size() > 0 ){
+    //   cout << " =================== " << endl;
+    //   for (int i=0; i<ppresult.size(); ++i ){
+    // 	cout << "Missed: " << endl;
+    // 	ppresult.at(i).orig.Print();
+    // 	for (int j=0; j<MatchedResult.size(); ++j ){
+    // 	  cout << j << ": " << ppresult.at(i).orig.Pt() << "  " << ppresult.at(i).orig.DeltaR( MatchedResult.at(j).first.orig ) << endl;
+    // 	}
+    //   }      
+    // }
+
+    // Fill Response
+    // -------------
+    for (vector<MatchedRootGroomingResultStruct>::iterator res = MatchedResult.begin(); res != MatchedResult.end(); ++res ){
+      if ( !PrepClosure || mcEvi%2 == 0){
+	IncPtZgResponse2D.Fill( res->second.orig.Pt(), res->second.zg, res->first.orig.Pt(), res->first.zg, mcweight );
+	IncPtResponse.Fill( res->second.orig.Pt(), res->first.orig.Pt(), mcweight );
+      }
+    }
+    
+    // Fill misses and fakes
+    if ( UseMiss ){
+      if ( !PrepClosure || mcEvi%2 == 0){
+	for ( vector<RootGroomingResultStruct>::iterator mcit = mcresult.begin(); mcit != mcresult.end(); ++mcit ){
+	  IncPtResponse.Miss( mcit->orig.Pt(), mcweight );
+	  IncPtZgResponse2D.Miss2D( mcit->orig.Pt(), mcit->zg, mcweight );
+	}
+      }
+    }
+    
+    if ( UseFakes ){
+      if ( !PrepClosure || mcEvi%2 == 0){
+	for ( vector<RootGroomingResultStruct>::iterator ppit = ppresult.begin(); ppit != ppresult.end(); ++ppit ){
+	  IncPtResponse.Fake( ppit->orig.Pt(), ppweight );
+	  IncPtZgResponse2D.Fake2D( ppit->orig.Pt(), ppit->zg, ppweight );
+	}  
+      }
     }
     
     continue;
 
-    // // Require truth in acceptance
-    // // ---------------------------
-    // if ( fabs ( McT->Eta() ) > EtaCut ) continue;
-    // bool HasAway= ( McA!=0 )   &&  ( fabs ( McA->Eta() ) < EtaCut );
-        
-    // // Skip low pT events
-    // // ------------------
-    // if ( McT->Pt() < MinJetPt ) continue;
-    // // if ( HasAway && McA->Pt() < MinJetPt ) continue; // TEST
+    // // Record Truth
+    // // ------------
+    // if ( !PrepClosure || mcEvi%2 == 0)    TrigTruth2D->Fill( McT->Pt(), mczgtriglo, mcweight );
+    // if ( !PrepClosure || mcEvi%2 == 1)    TrigTestTruth2D->Fill( McT->Pt(), mczgtriglo, mcweight );
+    // if ( HasAway ){
+    //   if ( !PrepClosure || mcEvi%2 == 0)    RecoilTruth2D->Fill( McA->Pt(), ppzgawaylo, mcweight );
+    //   if ( !PrepClosure || mcEvi%2 == 1)    RecoilTestTruth2D->Fill( McA->Pt(), ppzgawaylo, mcweight );
+    // }
 
+    // // Get the det level jets
+    // // ----------------------
+    // if ( PpTrigger->GetEntries()!=1 ){
+    //   cout << " No trigger jet in data?!" << endl;
+    //   return -1;
+    // } 
+    
+    // TLorentzVector* PpT = (TLorentzVector*) PpTrigger->At(0);
+    // TLorentzVector* PpA = 0;
+    // if (PpAwayJet->GetEntries()!=0 ) PpA = (TLorentzVector*) PpAwayJet->At(0);
 
-    // // Skip high weight outliers
-    // // -------------------------
-    // if ( RejectHiweights && GeantWeightReject ( 0.4, McT->Pt(), mcweight, 0 ) )  {
-    //   cout << "Skipping TRIGGER with pt=" << McT->Pt() << " due to high weight" << endl;
+    // if ( PpT->Pt()<15 && PpT->Pt()>10 && ( !RejectHiweights || !GeantWeightReject ( 0.4, PpT->Pt(), mcweight, 10 ) ) )
+    // 	 hhh->Fill( ppzgtriglo, mcweight );
+
+    // // TRIGGER: Find best match to MC
+    // // ------------------------------
+    // TLorentzVector* MatchT = 0;
+    // if ( McT->DeltaR( *PpT ) < RCut ) MatchT = PpT;
+    // // else if ( PpA && McT->DeltaR( *PpA ) < RCut ) MatchT = PpA;
+
+    // if ( !MatchT ) {
+    //   // lost trigger jet
+    //   if ( UseMiss ){
+    // 	if ( !PrepClosure || mcEvi%2 == 0){
+    // 	  TrigPtResponse.Miss( McT->Pt(), mcweight );
+    // 	  TrigPtZgResponse2D.Miss( McT->Pt(), mczgtriglo, mcweight );
+    // 	}
+    // 	if ( HasAway ) {
+    // 	  if ( !PrepClosure || mcEvi%2 == 0) {
+    // 	    RecoilPtResponse.Miss( McA->Pt(), mcweight );
+    // 	    RecoilPtZgResponse2D.Miss( McA->Pt(), mczgawaylo, mcweight );
+    // 	  }
+    // 	}
+    //   }
     //   continue;
     // }
-    // if ( HasAway && RejectHiweights && GeantWeightReject ( 0.4, McA->Pt(), mcweight, 1 ) )  {
-    //   cout << "Skipping RECOIL with pt=" << McA->Pt() << " due to high weight" << endl;
+
+    // if ( RejectHiweights && GeantWeightReject ( 0.4, MatchT->Pt(), mcweight, 10 ) )  {
+    //   cout << "Skipping RECO TRIGGER with pt=" << McT->Pt() << " due to high weight" << endl;
     //   continue;
     // }
-    
-    
-    
-    // Get corresponding pp event
-    // --------------------------
-    Long64_t ppevi=-1;
-    ppevi = PpChain->GetEntryNumberWithIndex( mcrunid, mceventid );
 
-    // bool missed = false;
-    if ( ppevi < 0 ){      
-      // Here is where we for the first time could file for loss
-      if ( UseMiss ){
-	if ( !PrepClosure || mcEvi%2 == 0){
-	  TrigPtResponse.Miss( McT->Pt(), mcweight );
-	  TrigPtZgResponse2D.Miss( McT->Pt(), mczgtriglo, mcweight );
-	}
-	if ( HasAway ) {
-	  if ( !PrepClosure || mcEvi%2 == 0) {
-	    RecoilPtResponse.Miss( McA->Pt(), mcweight );
-	    RecoilPtZgResponse2D.Miss( McA->Pt(), mczgawaylo, mcweight );
-	  }
-	}
-      }
-      
-      // Skip this event
-      continue;
-      //missed = true;
-    }
-    PpChain->GetEntry(ppevi);
-
-    // Record Truth
-    // ------------
-    if ( !PrepClosure || mcEvi%2 == 0)    TrigTruth2D->Fill( McT->Pt(), mczgtriglo, mcweight );
-    if ( !PrepClosure || mcEvi%2 == 1)    TrigTestTruth2D->Fill( McT->Pt(), mczgtriglo, mcweight );
-    if ( HasAway ){
-      if ( !PrepClosure || mcEvi%2 == 0)    RecoilTruth2D->Fill( McA->Pt(), ppzgawaylo, mcweight );
-      if ( !PrepClosure || mcEvi%2 == 1)    RecoilTestTruth2D->Fill( McA->Pt(), ppzgawaylo, mcweight );
-    }
-
-    // Get the det level jets
-    // ----------------------
-    if ( PpTrigger->GetEntries()!=1 ){
-      cout << " No trigger jet in data?!" << endl;
-      return -1;
-    } 
-    
-    TLorentzVector* PpT = (TLorentzVector*) PpTrigger->At(0);
-    TLorentzVector* PpA = 0;
-    if (PpAwayJet->GetEntries()!=0 ) PpA = (TLorentzVector*) PpAwayJet->At(0);
-
-    if ( PpT->Pt()<15 && PpT->Pt()>10 && ( !RejectHiweights || !GeantWeightReject ( 0.4, PpT->Pt(), mcweight, 10 ) ) )
-	 hhh->Fill( ppzgtriglo, mcweight );
-
-    // TRIGGER: Find best match to MC
-    // ------------------------------
-    TLorentzVector* MatchT = 0;
-    if ( McT->DeltaR( *PpT ) < RCut ) MatchT = PpT;
-    // else if ( PpA && McT->DeltaR( *PpA ) < RCut ) MatchT = PpA;
-
-    if ( !MatchT ) {
-      // lost trigger jet
-      if ( UseMiss ){
-	if ( !PrepClosure || mcEvi%2 == 0){
-	  TrigPtResponse.Miss( McT->Pt(), mcweight );
-	  TrigPtZgResponse2D.Miss( McT->Pt(), mczgtriglo, mcweight );
-	}
-	if ( HasAway ) {
-	  if ( !PrepClosure || mcEvi%2 == 0) {
-	    RecoilPtResponse.Miss( McA->Pt(), mcweight );
-	    RecoilPtZgResponse2D.Miss( McA->Pt(), mczgawaylo, mcweight );
-	  }
-	}
-      }
-      continue;
-    }
-
-    if ( RejectHiweights && GeantWeightReject ( 0.4, MatchT->Pt(), mcweight, 10 ) )  {
-      cout << "Skipping RECO TRIGGER with pt=" << McT->Pt() << " due to high weight" << endl;
-      continue;
-    }
-
-    // Skip other outliers
-    // -------------------
-    if ( RejectOutliers ){
-      if ( (McT->Pt() - MatchT->Pt()) / McT->Pt() < -0.4 )
-	continue;
-    }
+    // // Skip other outliers
+    // // -------------------
+    // if ( RejectOutliers ){
+    //   if ( (McT->Pt() - MatchT->Pt()) / McT->Pt() < -0.4 )
+    // 	continue;
+    // }
 
 
-    // Fill truth, smeared, and delta pT
-    McTriggerPt->Fill( McT->Pt(), mcweight);
-    PpTriggerPt->Fill( MatchT->Pt(), mcweight);
-    if ( fabs( McT->Pt() - MatchT->Pt() ) > McT->Pt() ) {
-      cerr << " ------------------------------------------------------------" << endl;
-      cerr << "Trigger match with dR=" << McT->DeltaR( *MatchT)
-	   << " pT_Part= " << McT->Pt() << " pT_Det= " << MatchT->Pt() << endl;
-      cerr << "mcrunid=" << mcrunid << "  " << "mceventid=" << mceventid << endl ;
-      cerr << "pprunid=" << pprunid << "  " << "ppeventid=" << ppeventid << endl ;
-      cerr << "mcweight=" << mcweight << "   ppweight=" << ppweight << endl ;
-      cerr << " ------------------------------------------------------------" << endl;
-    }
-    McPpTriggerPt->Fill( McT->Pt(), MatchT->Pt(), mcweight);
+    // // Fill truth, smeared, and delta pT
+    // McTriggerPt->Fill( McT->Pt(), mcweight);
+    // PpTriggerPt->Fill( MatchT->Pt(), mcweight);
+    // if ( fabs( McT->Pt() - MatchT->Pt() ) > McT->Pt() ) {
+    //   cerr << " ------------------------------------------------------------" << endl;
+    //   cerr << "Trigger match with dR=" << McT->DeltaR( *MatchT)
+    // 	   << " pT_Part= " << McT->Pt() << " pT_Det= " << MatchT->Pt() << endl;
+    //   cerr << "mcrunid=" << mcrunid << "  " << "mceventid=" << mceventid << endl ;
+    //   cerr << "pprunid=" << pprunid << "  " << "ppeventid=" << ppeventid << endl ;
+    //   cerr << "mcweight=" << mcweight << "   ppweight=" << ppweight << endl ;
+    //   cerr << " ------------------------------------------------------------" << endl;
+    // }
+    // McPpTriggerPt->Fill( McT->Pt(), MatchT->Pt(), mcweight);
  
-    DeltaTriggerPt->Fill( McT->Pt(), McT->Pt() - MatchT->Pt(), mcweight);
-    RelDeltaTriggerPt->Fill( McT->Pt(), (McT->Pt() - MatchT->Pt()) / McT->Pt(), mcweight);
+    // DeltaTriggerPt->Fill( McT->Pt(), McT->Pt() - MatchT->Pt(), mcweight);
+    // RelDeltaTriggerPt->Fill( McT->Pt(), (McT->Pt() - MatchT->Pt()) / McT->Pt(), mcweight);
     
-    if ( !PrepClosure || mcEvi%2 == 0) {
-      TrigPtResponse.Fill( MatchT->Pt(), McT->Pt(), mcweight );
-      TrigPtZgResponse2D.Fill( MatchT->Pt(), ppzgtriglo, McT->Pt(), mczgtriglo, mcweight );
-      McPpTriggerZg3d->Fill( ppzgtriglo, mczgtriglo, McT->Pt(), mcweight);
-      if ( MatchT->Pt() > 10 ) McPpTriggerZg10plus->Fill( ppzgtriglo, mczgtriglo, mcweight);
+    // if ( !PrepClosure || mcEvi%2 == 0) {
+    //   TrigPtResponse.Fill( MatchT->Pt(), McT->Pt(), mcweight );
+    //   TrigPtZgResponse2D.Fill( MatchT->Pt(), ppzgtriglo, McT->Pt(), mczgtriglo, mcweight );
+    //   McPpTriggerZg3d->Fill( ppzgtriglo, mczgtriglo, McT->Pt(), mcweight);
+    //   if ( MatchT->Pt() > 10 ) McPpTriggerZg10plus->Fill( ppzgtriglo, mczgtriglo, mcweight);
       
-      if ( MatchT->Pt() > 20 && MatchT->Pt() < 30 ){
-	McPpTriggerZg2030->Fill( ppzgtriglo, mczgtriglo, mcweight);
-      }
-    }
+    //   if ( MatchT->Pt() > 20 && MatchT->Pt() < 30 ){
+    // 	McPpTriggerZg2030->Fill( ppzgtriglo, mczgtriglo, mcweight);
+    //   }
+    // }
     
-    if ( !PrepClosure || mcEvi%2 == 0)    TrigMeas2D->Fill( MatchT->Pt(), ppzgtriglo, mcweight );
-    if ( !PrepClosure || mcEvi%2 == 1)    TrigTestMeas2D->Fill( MatchT->Pt(), ppzgtriglo, mcweight );
+    // if ( !PrepClosure || mcEvi%2 == 0)    TrigMeas2D->Fill( MatchT->Pt(), ppzgtriglo, mcweight );
+    // if ( !PrepClosure || mcEvi%2 == 1)    TrigTestMeas2D->Fill( MatchT->Pt(), ppzgtriglo, mcweight );
     
-    // RECOIL: Find best match to MC
-    // -----------------------------
-    if ( !HasAway ) {
-      // no recoil jet
-      continue;
-    }
+    // // RECOIL: Find best match to MC
+    // // -----------------------------
+    // if ( !HasAway ) {
+    //   // no recoil jet
+    //   continue;
+    // }
     
-    TLorentzVector* MatchA = 0;
-    if ( McA->DeltaR( *PpA ) < RCut ) MatchA = PpA;
-    // else if ( McA->DeltaR( *PpT ) < RCut ) MatchA = PpT;
+    // TLorentzVector* MatchA = 0;
+    // if ( McA->DeltaR( *PpA ) < RCut ) MatchA = PpA;
+    // // else if ( McA->DeltaR( *PpT ) < RCut ) MatchA = PpT;
     
-    if ( !MatchA ) {
-      // lost recoil jet
-      if ( UseMiss ){
-	if ( !PrepClosure || mcEvi%2 == 0){
-	  RecoilPtResponse.Miss( McA->Pt(), mcweight );
-	  RecoilPtZgResponse2D.Miss( McA->Pt(), mczgawaylo, mcweight );
-	}
-      }
-      continue;
-    }
+    // if ( !MatchA ) {
+    //   // lost recoil jet
+    //   if ( UseMiss ){
+    // 	if ( !PrepClosure || mcEvi%2 == 0){
+    // 	  RecoilPtResponse.Miss( McA->Pt(), mcweight );
+    // 	  RecoilPtZgResponse2D.Miss( McA->Pt(), mczgawaylo, mcweight );
+    // 	}
+    //   }
+    //   continue;
+    // }
     
-    if ( MatchA && RejectHiweights && GeantWeightReject ( 0.4, MatchA->Pt(), mcweight, 11 ) )  {
-      cout << "Skipping RECO RECOIL with pt=" << McA->Pt() << " due to high weight" << endl;
-      continue;
-    }
-
-    // if ( fabs( McA->Pt() - MatchA->Pt() ) > McA->Pt() ) {
-    //   cerr << "Recoil match with dR=" << McA->DeltaR( *MatchA)
-    // 	   << " pT_Part= " << McA->Pt() << " pT_Det= " << MatchA->Pt() << "  " << mcrunid << "  " << pprunid << endl ;
+    // if ( MatchA && RejectHiweights && GeantWeightReject ( 0.4, MatchA->Pt(), mcweight, 11 ) )  {
+    //   cout << "Skipping RECO RECOIL with pt=" << McA->Pt() << " due to high weight" << endl;
+    //   continue;
     // }
 
-    if ( !PrepClosure || mcEvi%2 == 0){
-      RecoilPtResponse.Fill( MatchA->Pt(), McA->Pt(), mcweight );
-      RecoilPtZgResponse2D.Fill( MatchA->Pt(), ppzgawaylo, McA->Pt(), mczgawaylo, mcweight );
-      RecoilPtZgResponse2D.Fill( MatchA->Pt(), ppzgawaylo, McA->Pt(), mczgawaylo, mcweight );
-    }
+    // // if ( fabs( McA->Pt() - MatchA->Pt() ) > McA->Pt() ) {
+    // //   cerr << "Recoil match with dR=" << McA->DeltaR( *MatchA)
+    // // 	   << " pT_Part= " << McA->Pt() << " pT_Det= " << MatchA->Pt() << "  " << mcrunid << "  " << pprunid << endl ;
+    // // }
 
-    if ( !PrepClosure || mcEvi%2 == 0)   RecoilMeas2D->Fill( MatchA->Pt(), ppzgawaylo, mcweight );
-    if ( !PrepClosure || mcEvi%2 == 1)   RecoilTestMeas2D->Fill( MatchA->Pt(), ppzgawaylo, mcweight );
+    // if ( !PrepClosure || mcEvi%2 == 0){
+    //   RecoilPtResponse.Fill( MatchA->Pt(), McA->Pt(), mcweight );
+    //   RecoilPtZgResponse2D.Fill( MatchA->Pt(), ppzgawaylo, McA->Pt(), mczgawaylo, mcweight );
+    //   RecoilPtZgResponse2D.Fill( MatchA->Pt(), ppzgawaylo, McA->Pt(), mczgawaylo, mcweight );
+    // }
+
+    // if ( !PrepClosure || mcEvi%2 == 0)   RecoilMeas2D->Fill( MatchA->Pt(), ppzgawaylo, mcweight );
+    // if ( !PrepClosure || mcEvi%2 == 1)   RecoilTestMeas2D->Fill( MatchA->Pt(), ppzgawaylo, mcweight );
 
   }
   cout << "Misssed " << missed << endl;
-  return 0;
+  // return 0;
 
-  new TCanvas ( "c0","");
-  gPad->SetGridx(0);  gPad->SetGridy(0);
-  gPad->SetLogy();
-  // McTriggerPt->Draw();
-  // PpTriggerPt->Draw("same");
-  TH1D* TrigTruthPt = (TH1D*) TrigTruth2D->ProjectionX("TrigTruthPt");
-  TH1D* TrigMeasPt = (TH1D*) TrigMeas2D->ProjectionX("TrigMeasPt");
-  TH1D* TrigTestTruthPt = (TH1D*) TrigTestTruth2D->ProjectionX("TrigTestTruthPt");
-  TH1D* TrigTestMeasPt = (TH1D*) TrigTestMeas2D->ProjectionX("TrigTestMeasPt");
+  // new TCanvas ( "c0","");
+  // gPad->SetGridx(0);  gPad->SetGridy(0);
+  // gPad->SetLogy();
+  // // McTriggerPt->Draw();
+  // // PpTriggerPt->Draw("same");
+  // TH1D* TrigTruthPt = (TH1D*) TrigTruth2D->ProjectionX("TrigTruthPt");
+  // TH1D* TrigMeasPt = (TH1D*) TrigMeas2D->ProjectionX("TrigMeasPt");
+  // TH1D* TrigTestTruthPt = (TH1D*) TrigTestTruth2D->ProjectionX("TrigTestTruthPt");
+  // TH1D* TrigTestMeasPt = (TH1D*) TrigTestMeas2D->ProjectionX("TrigTestMeasPt");
 
-  leg = new TLegend( 0.6, 0.6, 0.89, 0.9, "Leading Jet p_{T}" );
-  leg->SetBorderSize(0);
-  leg->SetLineWidth(10);
-  leg->SetFillStyle(0);
-  leg->SetMargin(0.1);
+  // leg = new TLegend( 0.6, 0.6, 0.89, 0.9, "Leading Jet p_{T}" );
+  // leg->SetBorderSize(0);
+  // leg->SetLineWidth(10);
+  // leg->SetFillStyle(0);
+  // leg->SetMargin(0.1);
 
-  TrigTruthPt->Draw("9same");
-  TrigMeasPt->Draw("9same");
+  // TrigTruthPt->Draw("9same");
+  // TrigMeasPt->Draw("9same");
   
-  TrigMeasPt->SetLineColor(kBlue);
-  leg->AddEntry(TrigMeasPt, "Training GEANT Result");
-  TrigTruthPt->SetLineColor(kOrange);
-  leg->AddEntry(TrigTruthPt, "Training Matched Truth");
+  // TrigMeasPt->SetLineColor(kBlue);
+  // leg->AddEntry(TrigMeasPt, "Training GEANT Result");
+  // TrigTruthPt->SetLineColor(kOrange);
+  // leg->AddEntry(TrigTruthPt, "Training Matched Truth");
 
-  TrigTestMeasPt->SetLineColor(kMagenta);
-  TrigTestMeasPt->Draw("9same");
-  leg->AddEntry(TrigTestMeasPt, "TESTING GEANT Result");
-  TrigTestTruthPt->SetLineColor(kRed);
-  TrigTestTruthPt->Draw("9same");
-  leg->AddEntry(TrigTestTruthPt, "TESTING Matched Truth");
-  leg->Draw("same");
+  // TrigTestMeasPt->SetLineColor(kMagenta);
+  // TrigTestMeasPt->Draw("9same");
+  // leg->AddEntry(TrigTestMeasPt, "TESTING GEANT Result");
+  // TrigTestTruthPt->SetLineColor(kRed);
+  // TrigTestTruthPt->Draw("9same");
+  // leg->AddEntry(TrigTestTruthPt, "TESTING Matched Truth");
+  // leg->Draw("same");
   
-  // PpTriggerPt->SetLineColor(kBlue);
-  // leg->AddEntry(PpTriggerPt, "Training GEANT Result");
-  // McTriggerPt->SetLineColor(kOrange);
-  // leg->AddEntry(McTriggerPt, "Matched Training Truth");
-  leg->Draw();
+  // // PpTriggerPt->SetLineColor(kBlue);
+  // // leg->AddEntry(PpTriggerPt, "Training GEANT Result");
+  // // McTriggerPt->SetLineColor(kOrange);
+  // // leg->AddEntry(McTriggerPt, "Matched Training Truth");
+  // leg->Draw();
 
-  gPad->SaveAs(PlotBase+"_TrigSpec.png");
+  // gPad->SaveAs(PlotBase+"_TrigSpec.png");
 
-  // new TCanvas ( "c1","",500, 500);
-  new TCanvas ( "c1","");
-  // gPad->SetCanvasSize(450,450);
-  // gPad->DrawFrame();
-  DeltaTriggerPt->Draw("colz");
-  // capped byt ptdet = ptpart-10
-  TF1* f = new TF1("f","x-10", ptmin, ptmax);
-  f->SetLineStyle(7);
-  f->SetLineWidth(1);
-  f->Draw("same");
-  gPad->SaveAs(PlotBase+"_DeltaPt.png");
-
-
-  new TCanvas ( "c2","",500, 500);
-  // gPad->SetCanvasSize(450,450);
-  RelDeltaTriggerPt->Draw("colz");
-  gPad->SaveAs(PlotBase+"_RelDeltaPt.png");
-
-  // new TCanvas ( "c22","",500, 500);
+  // // new TCanvas ( "c1","",500, 500);
+  // new TCanvas ( "c1","");
   // // gPad->SetCanvasSize(450,450);
-  // RelDeltaRecoilPt->Draw("colz");
+  // // gPad->DrawFrame();
+  // DeltaTriggerPt->Draw("colz");
+  // // capped byt ptdet = ptpart-10
+  // TF1* f = new TF1("f","x-10", ptmin, ptmax);
+  // f->SetLineStyle(7);
+  // f->SetLineWidth(1);
+  // f->Draw("same");
+  // gPad->SaveAs(PlotBase+"_DeltaPt.png");
+
+
+  // new TCanvas ( "c2","",500, 500);
+  // // gPad->SetCanvasSize(450,450);
+  // RelDeltaTriggerPt->Draw("colz");
   // gPad->SaveAs(PlotBase+"_RelDeltaPt.png");
 
-  new TCanvas ( "c3","",500, 500);
-  // gPad->SetCanvasSize(450,450);
-  DeltaTriggerPt->ProfileX("_pfx",1,-1,"s")->Draw();
-  gPad->SaveAs(PlotBase+"_DeltaProfile.png");
+  // // new TCanvas ( "c22","",500, 500);
+  // // // gPad->SetCanvasSize(450,450);
+  // // RelDeltaRecoilPt->Draw("colz");
+  // // gPad->SaveAs(PlotBase+"_RelDeltaPt.png");
 
-  new TCanvas ( "c4","",500, 500);
-  gPad->SetCanvasSize(450,450);
-  McPpTriggerPt->Draw("colz");
-  TLine l;
-  l.SetLineStyle(7);
-  l.DrawLine( ptmin, ptmin, ptmax, ptmax );
-  gPad->SaveAs(PlotBase+"_ResponseHist.png");
+  // new TCanvas ( "c3","",500, 500);
+  // // gPad->SetCanvasSize(450,450);
+  // DeltaTriggerPt->ProfileX("_pfx",1,-1,"s")->Draw();
+  // gPad->SaveAs(PlotBase+"_DeltaProfile.png");
+
+  // new TCanvas ( "c4","",500, 500);
+  // gPad->SetCanvasSize(450,450);
+  // McPpTriggerPt->Draw("colz");
+  // TLine l;
+  // l.SetLineStyle(7);
+  // l.DrawLine( ptmin, ptmin, ptmax, ptmax );
+  // gPad->SaveAs(PlotBase+"_ResponseHist.png");
+
+  // // new TCanvas ( "c5","",500, 500);
+  // // gPad->SetCanvasSize(450,450);
+  // // McPpTriggerZg2030->Draw("colz");
+  // // l.SetLineStyle(7);
+  // // l.DrawLine( 0.05, 0.55, 0.05, 0.55 );
+  // // gPad->SaveAs(PlotBase+"_ZgResponseHist.png");
 
   // new TCanvas ( "c5","",500, 500);
   // gPad->SetCanvasSize(450,450);
-  // McPpTriggerZg2030->Draw("colz");
+  // McPpTriggerZg10plus->Draw("colz");
   // l.SetLineStyle(7);
   // l.DrawLine( 0.05, 0.55, 0.05, 0.55 );
   // gPad->SaveAs(PlotBase+"_ZgResponseHist.png");
-
-  new TCanvas ( "c5","",500, 500);
-  gPad->SetCanvasSize(450,450);
-  McPpTriggerZg10plus->Draw("colz");
-  l.SetLineStyle(7);
-  l.DrawLine( 0.05, 0.55, 0.05, 0.55 );
-  gPad->SaveAs(PlotBase+"_ZgResponseHist.png");
   
-  new TCanvas ( "c6","",500, 500);
-  gPad->SetCanvasSize(450,450);
-
-  gPad->SaveAs(PlotBase+"_ZgResponses.pdf[");
-  for ( int i=1; i<=McPpTriggerZg3d->GetNbinsZ(); ++i ){
-    McPpTriggerZg3d->GetZaxis()->SetRange(i,i);
-    TH2D* h2=(TH2D*)McPpTriggerZg3d->Project3D("yx");
-    TString s=McPpTriggerZg3d->GetName(); s+=i;
-    h2->SetName(s);
-    s="p_{T}^{truth}=";
-    s+= int(McPpTriggerZg3d->GetZaxis()->GetBinLowEdge(i)+0.01);
-    s+=" - ";
-    s+= int(McPpTriggerZg3d->GetZaxis()->GetBinLowEdge(i+1)+0.01);
-    s+=" GeV/c ";
-    h2->SetTitle(s);    
-    h2->Draw("colz");
-    l.SetLineStyle(7);
-    l.DrawLine( 0.05, 0.55, 0.05, 0.55 );
-    // if (i==1) gPad->SaveAs(PlotBase+"_ZgResponses.pdf[");
-    // else if (i==McPpTriggerZg3d->GetNbinsZ()) gPad->SaveAs(PlotBase+"_ZgResponses.pdf]");
-    // else
-    gPad->SaveAs(PlotBase+"_ZgResponses.pdf");
-  }
-  gPad->SaveAs(PlotBase+"_ZgResponses.pdf]");
- 
-  // new TCanvas ( "c5","",500, 500);
+  // new TCanvas ( "c6","",500, 500);
   // gPad->SetCanvasSize(450,450);
-  // TrigPtZgResponse2D->Hmeasured()->Draw("colz");
-  // l.SetLineStyle(7);
-  // l.DrawLine( 0.05, 0.55, 0.05, 0.55 );
-  // gPad->SaveAs(PlotBase+"_ZgResponseHist.png");
+
+  // gPad->SaveAs(PlotBase+"_ZgResponses.pdf[");
+  // for ( int i=1; i<=McPpTriggerZg3d->GetNbinsZ(); ++i ){
+  //   McPpTriggerZg3d->GetZaxis()->SetRange(i,i);
+  //   TH2D* h2=(TH2D*)McPpTriggerZg3d->Project3D("yx");
+  //   TString s=McPpTriggerZg3d->GetName(); s+=i;
+  //   h2->SetName(s);
+  //   s="p_{T}^{truth}=";
+  //   s+= int(McPpTriggerZg3d->GetZaxis()->GetBinLowEdge(i)+0.01);
+  //   s+=" - ";
+  //   s+= int(McPpTriggerZg3d->GetZaxis()->GetBinLowEdge(i+1)+0.01);
+  //   s+=" GeV/c ";
+  //   h2->SetTitle(s);    
+  //   h2->Draw("colz");
+  //   l.SetLineStyle(7);
+  //   l.DrawLine( 0.05, 0.55, 0.05, 0.55 );
+  //   // if (i==1) gPad->SaveAs(PlotBase+"_ZgResponses.pdf[");
+  //   // else if (i==McPpTriggerZg3d->GetNbinsZ()) gPad->SaveAs(PlotBase+"_ZgResponses.pdf]");
+  //   // else
+  //   gPad->SaveAs(PlotBase+"_ZgResponses.pdf");
+  // }
+  // gPad->SaveAs(PlotBase+"_ZgResponses.pdf]");
+ 
+  // // new TCanvas ( "c5","",500, 500);
+  // // gPad->SetCanvasSize(450,450);
+  // // TrigPtZgResponse2D->Hmeasured()->Draw("colz");
+  // // l.SetLineStyle(7);
+  // // l.DrawLine( 0.05, 0.55, 0.05, 0.55 );
+  // // gPad->SaveAs(PlotBase+"_ZgResponseHist.png");
 
   
     
   // Done
   // ----
   fout->Write();
-  TrigPtResponse.SetName("TrigPtResponse");
-  TrigPtZgResponse2D.SetName("TrigPtZgResponse2D");
-  TrigPtResponse.Write();
-  TrigPtZgResponse2D.Write();
+  IncPtResponse.SetName("IncPtResponse");
+  IncPtZgResponse2D.SetName("IncPtZgResponse2D");
+  IncPtResponse.Write();
+  IncPtZgResponse2D.Write();
 
-  RecoilPtResponse.SetName("RecoilPtResponse");
-  RecoilPtZgResponse2D.SetName("RecoilPtZgResponse2D");
-  RecoilPtResponse.Write();
-  RecoilPtZgResponse2D.Write();
+  // TrigPtResponse.SetName("TrigPtResponse");
+  // TrigPtZgResponse2D.SetName("TrigPtZgResponse2D");
+  // TrigPtResponse.Write();
+  // TrigPtZgResponse2D.Write();
+
+  // RecoilPtResponse.SetName("RecoilPtResponse");
+  // RecoilPtZgResponse2D.SetName("RecoilPtZgResponse2D");
+  // RecoilPtResponse.Write();
+  // RecoilPtZgResponse2D.Write();
 
   cout << " Wrote to" << endl << OutFileName << endl;
 
 
-  new TCanvas;     hhh->DrawNormalized();
-  hhh->SaveAs("hhh.root");
+  // new TCanvas;     hhh->DrawNormalized();
+  // hhh->SaveAs("hhh.root");
 
   return 0;
 
 }
+
+
