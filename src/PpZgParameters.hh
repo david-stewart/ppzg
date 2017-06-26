@@ -65,6 +65,8 @@ public :
   double PtJetMax = 1000.0;   ///< Max jet pT
   double LeadPtMin=5.0;                 ///< leading jet minimum p<SUB>T</SUB>
     
+  double MaxJetNEF=0.9;       ///< Max neutral energy fraction
+
   double EtaConsCut = 1.0;    ///< Constituent |&eta;| acceptance
   double PtConsMin=0.2;       ///< Constituent pT minimum
   // const double PtConsMin=2.0;       ///< Constituent pT minimum
@@ -79,8 +81,6 @@ public :
   double DcaCut=1.0;          ///< track dca
   double NMinFit=20;             ///< minimum number of fit points for tracks
   double FitOverMaxPointsCut=0.52; ///< NFit / NFitPossible
-  // double NFitMin=20.0;        ///< Constituent minimum fit points
-  // double NFitRatio=0.52;      ///< Constituent NFit / NFitPossible cut
 
   // ************************************
   // Do NOT cut high tracks and towers!
@@ -89,23 +89,15 @@ public :
   // ************************************
   double MaxEtCut=1000;       ///< tower ET cut
   double MaxTrackPt=1000;     ///< track pT cut
-  // const double EtTowerMax=1000;       ///< tower ET cut
-  // const double PtTrackMax=1000;       ///< tower ET cut
 
   
   // EVENT rejection cuts
   double MaxEventPtCut=30;       ///< max track pT cut for event
+  // double MaxEventEtCut=1000;       ///< max tower ET cut for event
   double MaxEventEtCut=30;       ///< max tower ET cut for event
-
   double MinEventEtCut=0;        ///< min event ET cut for event
-
   double ManualHtCut=0.0;        ///< necessary for some embedding picos. Should always equal MinEventEtCut
-  
-  // double VzCut=30;            ///< Vertex z 
-  // double VzDiffCut=6;         ///< |Vz(TPC) - Vz(VPD)|
 
-  // // Tracks: Some standard high quality cuts
-  // const double DcaCut=1.0;          ///< Constituent dca cut
 
   BGTYPE SubtractBg=AREA;
   BGTYPE EmbSubtractBg=AREA;
