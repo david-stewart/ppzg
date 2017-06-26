@@ -51,6 +51,9 @@
     }
   }
 
+  TString STARPICOPATH=gSystem->Getenv("STARPICOPATH");
+  gSystem->AddIncludePath(" -I" + STARPICOPATH);
+
   TString __ROOUNFOLD=gSystem->Getenv("ROOUNFOLD");
   if (__ROOUNFOLD!=""){
     gSystem->AddIncludePath(" -I" + __ROOUNFOLD + "/src");
