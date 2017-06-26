@@ -199,7 +199,7 @@ PpZgAnalysis::PpZgAnalysis ( const int argc, const char** const argv )
   }
 
   if ( !forcedgeantnum ){
-    if ( pars.InputName.Contains( "Geant" ) ){
+    if ( pars.InputName.Contains( "Geant" ) || pars.InputName.Contains( "EmbedPythiaRun12" ) ){
       pars.UseGeantNumbering=true;
     }
   }
@@ -274,6 +274,10 @@ PpZgAnalysis::PpZgAnalysis ( const int argc, const char** const argv )
   cout << " Writing to " << pars.OutFileName << endl;
   cout << " ----------------------------" << endl;
 
+  // Quick and dirty QA histos
+  // -------------------------
+  QA_TowerEt = new TH2D( "QA_TowerEt","", 4800, 0.5, 4800.5, 80, 0, 80);
+    
 }
 //----------------------------------------------------------------------
 PpZgAnalysis::~PpZgAnalysis(){
@@ -504,10 +508,16 @@ EVENTRESULT PpZgAnalysis::RunEvent (){
   for ( int i=0 ; i<pFullEvent->GetEntries() ; ++i ){
     sv = (TStarJetVector*) pFullEvent->At(i);
     // Ensure kinematic similarity
+    // cerr << "Pseudo" << endl;
+    // cerr << "Pseudo " << sv->Eta() << "  " << sv->Pt() << endl;
+    // cerr << "Pseudo worked" << endl;
+		   
     if ( sv->Pt()< pars.PtConsMin )             continue;
     if ( fabs( sv->Eta() )>pars.EtaConsCut )    continue;
     particles.push_back( PseudoJet (*sv ) );
-    particles.back().set_user_info ( new JetAnalysisUserInfo( 3*sv->GetCharge() ) );
+    particles.back().set_user_info ( new JetAnalysisUserInfo( 3*sv->GetCharge(),"",sv->GetTowerID() ) );
+    
+    if ( !sv->GetCharge()) QA_TowerEt->Fill ( sv->GetTowerID(), sv->Et() );
 
     if (
 	( pars.intype==MCPICO || pars.intype==MCTREE || pars.intype==INTREE )
@@ -544,7 +554,16 @@ EVENTRESULT PpZgAnalysis::RunEvent (){
       throw std::runtime_error("mcweight unchanged!");
     }
   }
-      
+
+  if ( pars.InputName.Contains("EmbedPythiaRun12pp200") ){
+    TString currentfile = pReader->GetInputChain()->GetCurrentFile()->GetName();
+    weight=LookupRun12Xsec ( currentfile );
+    if ( fabs(weight-1)<1e-4){
+      throw std::runtime_error("mcweight unchanged!");
+    }
+  }
+
+  
   // For pythia, fill leading parton container
   // -----------------------------------------  
   if ( pHardPartons ){
@@ -737,6 +756,14 @@ shared_ptr<TStarJetPicoReader> SetupReader ( TChain* chain, const PpZgParameters
   evCuts->SetMaxEventEtCut ( pars.MaxEventEtCut );
 
   evCuts->SetMinEventEtCut ( pars.MinEventEtCut );
+
+  std::cout << "Using these event cuts:" << std::endl;
+  std::cout << " Vz: " << evCuts->GetVertexZCut() << std::endl;
+  std::cout << " Refmult: " << evCuts->GetRefMultCutMin() << " -- " << evCuts->GetRefMultCutMax() << std::endl;
+  std::cout << " Delta Vz:  " << evCuts->GetVertexZDiffCut() << std::endl;
+  std::cout << " MaxEventPt:  " << evCuts->GetMaxEventPtCut() << std::endl;
+  std::cout << " MaxEventEt:  " << evCuts->GetMaxEventEtCut() << std::endl;
+  
   // This method does NOT WORK for GEANT MC trees because everything is in the tracks...
   // Do it by hand later on, using pars.ManualHtCut;
   // Also doesn't work for general trees, but there it can't be fixed
@@ -802,7 +829,9 @@ void TurnOffCuts ( std::shared_ptr<TStarJetPicoReader> pReader ){
   
   // Towers: should be no tower in MC. All (charged or neutral) are handled in track
   TStarJetPicoTowerCuts* towerCuts = pReader->GetTowerCuts();
-  towerCuts->SetMaxEtCut(99999);  
+  towerCuts->SetMaxEtCut(99999);
+
+  cout << " TURNED OFF ALL CUTS" << endl;
 }
   
   
@@ -910,6 +939,24 @@ double LookupXsec( TString filename ){
 
   return 1;
 
+}
+
+//----------------------------------------------------------------------
+double LookupRun12Xsec( TString filename ){
+  
+  const int NUMBEROFPT = 11;
+  // const char *PTBINS[NUMBEROFPT]={"2_3","3_4","4_5","5_7","7_9","9_11","11_15","15_20","20_25","25_35","35_-1"};
+  const static float XSEC[NUMBEROFPT] = {9.00581646, 1.461908221, 0.3544350863, 0.1513760388, 0.02488645725, 0.005845846143, 0.002304880181, 0.000342661835, 4.562988397e-05, 9.738041626e-06, 5.019978175e-07};
+  const static float NUMBEROFEVENT[NUMBEROFPT] = {2100295, 600300, 600300, 300289, 300289, 300289, 160295, 100302, 80293, 76303, 23307};
+
+  const static vector<string> vptbins={"pp12Pico_pt2_3","pp12Pico_pt3_4","pp12Pico_pt4_5","pp12Pico_pt5_7","pp12Pico_pt7_9","pp12Pico_pt9_11","pp12Pico_pt11_15","pp12Pico_pt15_20","pp12Pico_pt20_25","pp12Pico_pt25_35","35_-1"};
+  for ( int i=0; i<vptbins.size(); ++i ){
+    if ( filename.Contains(vptbins.at(i).data())) return XSEC[i] / NUMBEROFEVENT[i];
+  }
+
+  throw std::runtime_error("Not a valid filename");
+  return -1;
+  
 }
 
 //----------------------------------------------------------------------

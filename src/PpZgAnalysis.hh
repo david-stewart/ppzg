@@ -54,11 +54,16 @@ using namespace fastjet;
 using namespace contrib;
 
 
-
 /** 
     A helper for geant data
  */
 double LookupXsec( TString filename );
+
+/** 
+    A helper for Run12 embedding data
+ */
+double LookupRun12Xsec( TString filename );
+
 
 /**
    For sorting with a different key
@@ -239,7 +244,6 @@ public:
       \param argc: number of arguments
       \param argv: string array of command line options
    */
-
   PpZgAnalysis ( const int argc, const char** const  );
 
   /** Destructor. Clean things up
@@ -260,6 +264,10 @@ public:
   // bool Has10Gev;
   // double OverrideJetMin;        ///< quick and dirty way to override the 10 GeV minimum
 
+  // Quick and dirty QA histos - keep them public
+  // --------------------------------------------
+  TH2D* QA_TowerEt;
+  
 
   // Getters and Setters
   // -------------------
@@ -300,6 +308,7 @@ public:
   
   inline double GetRho()                             { return rho; }
 
+  inline const vector<PseudoJet>& GetParticles() const     { return particles; }
   // /// Get minimum jet p<SUB>T</SUB>
   // inline double GetJet_ptmin ( )                   { return pars.jet_ptmin; };
   // /// Set minimum jet p<SUB>T</SUB>
@@ -337,9 +346,10 @@ public:
   /// Handle to jet area definition
   inline fastjet::AreaDefinition& GetAreaDef () { return AreaDef; }
 
-  // // DEBUG ONLY!!
-  // void DumbTest(){
-    
+  /// Handle to constituents
+  inline std::vector<fastjet::PseudoJet> GetConstituents() {return particles; };
+
+   
   //   TStarJetPicoTowerCuts* towerCuts = pReader->GetTowerCuts();
   //   cout << "DumbTest: towerCuts->MaxEt="<< towerCuts->GetMaxEtCut() << endl;
   //   cout << "DumbTest: towerCuts=" << towerCuts << endl;
