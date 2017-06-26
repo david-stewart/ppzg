@@ -28,7 +28,7 @@
 #include "TString.h"
 #include "TObjString.h"
 
-
+#include <set>
 #include <vector>
 #include <algorithm>
 
@@ -44,7 +44,9 @@ using namespace std;
 using namespace fastjet;
 using namespace contrib;
 
-
+// Mostly for run 12
+bool readinbadrunlist(vector<int> & badrun, TString csvfile);
+  
 // DEBUG
 void decluster (PseudoJet j);
 
@@ -90,6 +92,9 @@ int main( int argc, const char** argv ){
     TStarJetPicoTowerCuts* towerCuts = pReader->GetTowerCuts();
     if ( pars.InputName.Contains("NPE") || pars.InputName.Contains("11picoMB") ){
       towerCuts->AddBadTowers( TString( getenv("STARPICOPATH" )) + "/badTowerList_y11.txt");
+    } else if ( pars.InputName.Contains("Run12") ){
+      // towerCuts->AddBadTowers( TString( getenv("STARPICOPATH" )) + "/pp200Y12_badtower.list");
+      towerCuts->AddBadTowers( TString( getenv("STARPICOPATH" )) + "/Combined_pp200Y12_badtower.list");
     } else if ( pars.InputName.Contains("Y14") ){
       towerCuts->AddBadTowers( TString( getenv("STARPICOPATH" )) + "/Alternate_QuickAndDirty_y14.txt");
       towerCuts->AddBadTowers( TString( getenv("STARPICOPATH" )) + "/Combined_y7_PP_Nick.txt");
@@ -110,6 +115,8 @@ int main( int argc, const char** argv ){
     TStarJetPicoTowerCuts* towerCuts = pEmbReader->GetTowerCuts();
     if ( pars.EmbInputName.Contains("NPE") || pars.EmbInputName.Contains("11picoMB") ){
       towerCuts->AddBadTowers( TString( getenv("STARPICOPATH" )) + "/badTowerList_y11.txt");
+    } else if ( pars.EmbInputName.Contains("Run12") ){
+      towerCuts->AddBadTowers( TString( getenv("STARPICOPATH" )) + "/pp200Y12_badtower.list");      
     } else if ( pars.EmbInputName.Contains("Y14") ){
       towerCuts->AddBadTowers( TString( getenv("STARPICOPATH" )) + "/Alternate_QuickAndDirty_y14.txt");
       towerCuts->AddBadTowers( TString( getenv("STARPICOPATH" )) + "/Combined_y7_PP_Nick.txt");
@@ -120,6 +127,33 @@ int main( int argc, const char** argv ){
     }
   }
   
+  // Explicitly add bad run list here
+  // --------------------------------
+  if ( pReader ){
+    if ( pars.InputName.Contains("Run12") ){
+      TString csvfile= TString( getenv("STARPICOPATH" )) + "/pp200Y12_badrun.list";
+      vector<int> badruns;
+      if ( readinbadrunlist( badruns, csvfile) == false ){
+	cerr << "Problems reading bad run list" << endl;
+	return -1;
+      }
+      pReader->AddMaskedRuns (badruns);
+    }
+  }
+  
+  if ( pEmbReader ){
+    if ( pars.EmbInputName.Contains("Run12") ){
+      TString csvfile= TString( getenv("STARPICOPATH" )) + "/pp200Y12_badrun.list";
+      vector<int> badruns;
+      if ( readinbadrunlist( badruns, csvfile) == false ){
+	cerr << "Problems reading bad run list" << endl;
+	return -1;
+      }
+      pEmbReader->AddMaskedRuns (badruns);
+    }
+  }
+      
+
   // Files and histograms
   // --------------------
 
@@ -131,7 +165,8 @@ int main( int argc, const char** argv ){
     
   // TH1D* hzg      = new TH1D( "hzg", "z_{g}"              , 100*(pars.R+0.1),  0.0, (pars.R+0.1)  );
   // TH1D* hEmbzg   = new TH1D( "hEmbzg", "z_{g}, embedded" , 100*(pars.R+0.1),  0.0, (pars.R+0.1)  );
-  // TH3D* ptphieta = new TH3D("ptphieta","",500, 0.2, 50.2, 100, 0, TMath::TwoPi(), 300, -3, 3);
+  TH3D* cptphieta = new TH3D("cptphieta","",500, 0.2, 50.2, 100, 0, TMath::TwoPi(), 100, -1, 1);
+  TH3D* nptphieta = new TH3D("nptphieta","",500, 0.2, 50.2, 100, 0, TMath::TwoPi(), 100, -1, 1);
   
   // List of miscellaneous info
   // --------------------------
@@ -172,7 +207,8 @@ int main( int argc, const char** argv ){
   // For convenience
   TStarJetVectorJet HTJet;
   ResultTree->Branch("HTJet", &HTJet );
-  
+  double HTJetZg;
+  ResultTree->Branch("HTJetZg", &HTJetZg );
 
   TClonesArray Jets( "TStarJetVectorJet" );
   ResultTree->Branch("Jets", &Jets );
@@ -273,6 +309,7 @@ int main( int argc, const char** argv ){
       GroomedJets.Clear();
       HTJet = TStarJetVectorJet();
       HT = TStarJetVector();
+      HTJetZg = 0;
       //   sj1.Clear();
       //   sj2.Clear();
       rho=-1;
@@ -361,32 +398,32 @@ int main( int argc, const char** argv ){
       int ijet=0;
       for ( auto& gr : GroomingResult ){	
 	zg[ijet]=gr.zg;
-
-	//   zg1[ijet]=0;
-	//   zg2[ijet]=0;
-	//   delta_R[ijet]=0;      
-	// mu[ijet]=0;
-	// if ( gr.orig.pt() > 52 ) {
-	//   cout << gr.orig << endl;
-	//   // cout << JAhiResult.at(1) << endl;
-	//   HT.Print();
-	// }
-	
-	// new ( Jets[ijet] )               TStarJetVectorJet ( TStarJetVector( MakeTLorentzVector( *gr.orig) ) );
-	// new ( GroomedJets[ijet] )        TStarJetVectorJet ( TStarJetVector( MakeTLorentzVector( *gr.groomed) ) );
 	new ( Jets[ijet] )               TStarJetVectorJet ( TStarJetVector( MakeTLorentzVector( gr.orig) ) );
 	new ( GroomedJets[ijet] )        TStarJetVectorJet ( TStarJetVector( MakeTLorentzVector( gr.groomed) ) );
 	zg[ijet] = gr.zg;
 		  
-	// TStarJetVector sv = TStarJetVector( MakeTLorentzVector( *gr.orig) );
 	TStarJetVector sv = TStarJetVector( MakeTLorentzVector( gr.orig) );
 	if ( HT.Pt()>1e-1 && HT.DeltaR( sv ) <pars.R ){
-      	  // cout << " matched to trigger with pT=" << pHT->Pt() << endl;
-	  if ( HTJet.Pt()<sv.Pt() ) HTJet = sv;
-      	} else {
-      	  // cout << endl;
-	}
+	  if ( HTJet.Pt()<sv.Pt() ) {
+	    HTJet = sv;
+	    HTJetZg = gr.zg;
+	  }	  
+      	} 
 
+	if ( gr.orig.pt()>200 ){ // DEBUG
+	  vector<PseudoJet> particles = sorted_by_pt(ppzg->GetConstituents());
+	  vector<PseudoJet> c = sorted_by_pt(gr.orig.constituents());
+	  for (auto& p : c ){
+	    if ( p.has_user_info<JetAnalysisUserInfo>() )
+	      cout << "WEIRD JET: charge = " << p.user_info<JetAnalysisUserInfo>().GetQuarkCharge()/3.0
+		   << ", Id = " << p.user_info<JetAnalysisUserInfo>().GetNumber()
+		   << ", pT = " << p.pt() << endl;
+	    else
+	      cout << "WEIRD JET: no charge info, " << p << endl;
+	  }
+	  // return -1;
+	}
+	
 	ijet++;
       }
     // 	new ( GroomedJets[ijet] ) TStarJetVectorJet ( TStarJetVector(MakeTLorentzVector ( CurrentJet )) );
@@ -420,10 +457,22 @@ int main( int argc, const char** argv ){
     // 	// save original and groomed
     // 	new ( Jets[ijet] )        TStarJetVectorJet ( TStarJetVector(MakeTLorentzVector ( CurrentJet )) );
     // 	new ( GroomedJets[ijet] ) TStarJetVectorJet ( TStarJetVector(MakeTLorentzVector ( sd_jet ))  );
-
-
+      
       
       ResultTree->Fill();
+
+      const vector<PseudoJet>& particles = ppzg->GetParticles();
+      for (auto& p : particles ){
+	if ( p.has_user_info<JetAnalysisUserInfo>() ){
+	  if ( abs( p.user_info<JetAnalysisUserInfo>().GetQuarkCharge() )>0 ){
+	    cptphieta->Fill(p.pt(),p.phi(),p.eta());
+	  } else {
+	    nptphieta->Fill(p.pt(),p.phi(),p.eta());
+	  }
+	}else{
+	  cout << "constituent: no charge info" << endl;
+	}
+      }	     
     }
   } catch (std::string& s) {
     cerr << "RunEvent failed with string " << s << endl;
@@ -1015,7 +1064,10 @@ int main( int argc, const char** argv ){
   
   fout->Write();
 
+  if (ppzg->QA_TowerEt ) ppzg->QA_TowerEt->Write();
+
   cout << "Done." << endl;
+
 
   delete ppzg;
   return 0;
@@ -1040,5 +1092,38 @@ void decluster (PseudoJet j){
 
   } else cout << " Done with this branch" << endl;
   return;
+}
+
+//----------------------------------------------------------------------
+bool readinbadrunlist(vector<int> & badrun, TString csvfile) {
+	
+  // open infile
+  std::string line;
+  std::ifstream inFile (csvfile );
+	
+  std::cout<<"Loading bad run id from "<< csvfile.Data()<<std::endl;;
+	        
+  if ( !inFile.good() ) {
+    std::cout<<"Can't open "<<csvfile.Data()<<std::endl;
+    return false;
+  }
+	
+  while (std::getline (inFile, line) ){
+    if ( line.size()==0 ) continue; // skip empty lines
+    if ( line[0] == '#' ) continue; // skip comments
+	
+    std::istringstream ss( line );
+    while( ss ){
+      std::string entry;
+      std::getline( ss, entry, ',' );
+      int ientry = atoi(entry.c_str());
+      if (ientry) {
+	badrun.push_back( ientry );
+	std::cout<<"Added bad runid "<<ientry<<std::endl;
+      }
+    }
+  }
+	
+  return true;
 }
 
