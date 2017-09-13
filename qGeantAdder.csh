@@ -12,21 +12,23 @@ set ExecPath = `pwd`
 #set RMod = R0.2_
 #set RMod = Pt1_
 
-# set inbase  = McGeant_NoEff_NoBg_HT54_picoDst
-# set outbase = McGeant_NoEff_NoBg_HT54
+# set inbase  = Recut_McGeant_NoEff_NoBg_MB_picoDst
+# set outbase = Recut_McGeant_NoEff_NoBg_MB
 
-# set inbase  = McGeant_NoEff_NoBg_MB_picoDst
-# set outbase = McGeant_NoEff_NoBg_MB
+# set inbase  = Recut_Geant_NoEff_NoBg_HT54_picoDst
+# set outbase = Recut_Geant_NoEff_NoBg_HT54
 
-# set inbase  = Geant_NoEff_NoBg_HT54_picoDst
-# set outbase = Geant_NoEff_NoBg_HT54
+# set inbase  = Geant_NoEff_NoBg_MB_picoDst
+# set outbase = Geant_NoEff_NoBg_MB
 
-set inbase  = Geant_NoEff_NoBg_MB_picoDst
-set outbase = Geant_NoEff_NoBg_MB
+set inbase  = Recut_McGeant_NoEff_NoBg_MB_picoDst
+set outbase = Recut_McGeant_NoEff_NoBg_MB
+
+
 
 set binjobs=''
 set binouts=''
-set ab25binouts=''
+#set ab25binouts=''
 
 foreach bin ( `find Data/GeantPythia/ -name '[0-9]*' -exec basename {} \; ` )
     set In  = Results/Pieces/${inbase}_${bin}*.root
@@ -39,7 +41,7 @@ foreach bin ( `find Data/GeantPythia/ -name '[0-9]*' -exec basename {} \; ` )
     set binjobs=${binjobs}:`qsub -V -p 10 -q erhiq -l mem=2gb -W umask=0022 -N AddGeantPart -o $LogFile -e $ErrFile -- ${ExecPath}/qwrap.sh ${ExecPath} hadd -f ${Out} ${In}`
     set binouts="${binouts} $Out"
 
-    if ( $bin =~ *25_35* || $bin =~ *35_45* || $bin =~ *45_55* || $bin =~ *55_65*  ) set ab25binouts="${ab25binouts} $Out"
+    # if ( $bin =~ *25_35* || $bin =~ *35_45* || $bin =~ *45_55* || $bin =~ *55_65*  ) set ab25binouts="${ab25binouts} $Out"
 end
 	    
 # finalize

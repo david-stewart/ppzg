@@ -69,8 +69,20 @@ typedef pair<RootGroomingResultStruct,RootGroomingResultStruct> MatchedRootGroom
 int MatchGeantToPythia (
 			// TString PpLevelFile = "Results/Geant_NoEff_NoBg_HT54_25_35.root",
 			// TString McLevelFile = "Results/McGeant_NoEff_NoBg_MB_25_35.root" // Reference (particle level) jets
-			TString PpLevelFile = "Results/Geant_NoEff_NoBg_HT54.root",
-			TString McLevelFile = "Results/McGeant_NoEff_NoBg_MB.root" // Reference (particle level) jets
+			// TString PpLevelFile = "Results/Recut_Geant_NoEff_NoBg_HT54.root",
+			// TString McLevelFile = "Results/Recut_McGeant_NoEff_NoBg_MB.root" // Reference (particle level) jets
+			// TString PpLevelFile = "Results/ReCut_Geant12_NoEff_NoBg_HT54_JP.root",
+			// TString McLevelFile = "Results/ReCut_McGeant12_NoEff_NoBg_MB.root" // Reference (particle level) jets
+			// --- Latest Run 6 --- 
+			// TString PpLevelFile = "Results/AEff0_PtSmear0_ATow0_SystGeant_NoEff_NoBg_HT54.root",
+			// TString McLevelFile = "Results/Recut_McGeant_NoEff_NoBg_MB.root" // Reference (particle level) jets
+			// --- Use one of these for Run 12: ---
+			// TString PpLevelFile = "Results/AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_HT54_JP2.root",
+			// TString PpLevelFile = "Results/AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_JP2.root",
+			// TString McLevelFile = "Results/McGeant12_NoEff_NoBg_all.root" // Reference (particle level) jets
+			// --- MIP or other hadronic correction cross check ---
+			TString PpLevelFile = "Results/AEff0_PtSmear0_ATow0_SystGeant12_MIP_NoEff_NoBg_JP2.root",
+			TString McLevelFile = "Results/McGeant12_NoEff_NoBg_all.root" // Reference (particle level) jets
 			) {
   gStyle->SetOptStat(0);
   gStyle->SetTitleX(0.1f);
@@ -224,18 +236,6 @@ int MatchGeantToPythia (
   TH1::SetDefaultSumw2(true);
   TH2::SetDefaultSumw2(true);
 
-  int nPtBins = 80;
-  float ptmin=0;
-  float ptmax=80;
-
-  
-  // TH1D* McTriggerPt = new TH1D( "McTriggerPt",";Trigger p_{T}^{Part} [GeV/c]", nPtBins, ptmin, ptmax );
-  // TH1D* PpTriggerPt = new TH1D( "PpTriggerPt",";Trigger p_{T}^{Det} [GeV/c]", nPtBins, ptmin, ptmax );
-
-  // TH2D* McPpTriggerPt = new TH2D( "McPpTriggerPt",";p_{T}^{Part} [GeV/c];p_{T}^{Det} [GeV/c]", nPtBins, ptmin, ptmax, nPtBins, ptmin, ptmax );
-
-  // TH2D* DeltaTriggerPt = new TH2D( "DeltaTriggerPt",";p_{T}^{Part};Trigger p_{T}^{Part}-p_{T}^{Det} [GeV/c]", nPtBins, ptmin, ptmax, 100, -40, 60 );
-  // TH2D* RelDeltaTriggerPt = new TH2D( "RelDeltaTriggerPt",";p_{T}^{Part};Trigger (p_{T}^{Part}-p_{T}^{Det}) / p_{T}^{Part}", nPtBins, ptmin, ptmax, 100, -2, 2 );
 
   // Set up response matrix
   // ----------------------
@@ -245,23 +245,17 @@ int MatchGeantToPythia (
   // int nZgBinsTrue = 20;
   // float zgminTrue = 0.05;
   // float zgmaxTrue = 0.55;
-  
   int nZgBinsMeas = nZgBinsTrue;
   float zgminMeas = zgminTrue;
   float zgmaxMeas = zgmaxTrue;
 
-  // int nZgBinsMeas = 20;
-  // float zgminMeas = 0.05;
-  // float zgmaxMeas = 0.55;
+  int nPtBins = 80;
+  float ptmin=0;
+  float ptmax=80;
 
-  
   int nPtBinsTrue =  nPtBins;
   float ptminTrue =  ptmin;
   float ptmaxTrue =  ptmax;
-
-  // int nPtBinsMeas =  140;
-  // float ptminMeas =  10;
-  // float ptmaxMeas =  80;
   int nPtBinsMeas =  60;
   float ptminMeas =  0;
   float ptmaxMeas =  60;
@@ -273,6 +267,8 @@ int MatchGeantToPythia (
   // 2D unfolding:
   TH2D* hTrue= new TH2D ("hTrue", "Truth", nPtBinsTrue, ptminTrue, ptmaxTrue, nZgBinsTrue, zgminTrue, zgmaxTrue);
   TH2D* hMeas= new TH2D ("hMeas", "Measured", nPtBinsMeas, ptminMeas, ptmaxMeas, nZgBinsMeas, zgminMeas, zgmaxMeas);
+
+  TH2D* hTruthOfZero= new TH2D ("hTruthOfZero", "hTruthOfZero", nPtBinsTrue, ptminTrue, ptmaxTrue, nZgBinsTrue, zgminTrue, zgmaxTrue);
 
   RooUnfoldResponse IncPtZgResponse2D;
   IncPtZgResponse2D.Setup (hMeas, hTrue );
@@ -339,8 +335,14 @@ int MatchGeantToPythia (
 
       // // DEBUG, for now
       // // force truth to have positive zg
-      // if ( mczg[j] < 0.1 ) continue; 
+      // if ( mczg[j] < 0.1 ) continue;
 
+      // Debug: Can this happen?
+      if ( mczg[j] < 0.0 || mczg[j] >= 0.5 ) {
+	cerr << "!!!!!! mczg[j] = " << mczg[j] << endl;
+	return -1;
+      }
+	
       // Ok, record
       if ( fabs ( mcjet->Eta() ) < EtaCut ) {
 	mcresult.push_back( RootGroomingResultStruct(*mcjet, *mcgjet, mczg[j]) );
@@ -462,6 +464,10 @@ int MatchGeantToPythia (
       if ( !PrepClosure || mcEvi%2 == 0){
 	IncPtZgResponse2D.Fill( res->second.orig.Pt(), res->second.zg, res->first.orig.Pt(), res->first.zg, mcweight );
 	IncPtResponse.Fill( res->second.orig.Pt(), res->first.orig.Pt(), mcweight );
+	if ( res->second.zg <0.1 ) {
+	  // cout << res->first.zg << "  " << res->first.orig.Pt() << endl;
+	  hTruthOfZero->Fill(res->first.orig.Pt(), res->first.zg, mcweight );
+	}
       }
     }
     

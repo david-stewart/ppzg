@@ -37,7 +37,7 @@ PpZgAnalysis::PpZgAnalysis ( const int argc, const char** const argv )
       ReclusterJetAlgorithm = AlgoFromString ( *parg);
       ReclusterJetDef = JetDefinition( ReclusterJetAlgorithm, 2.0*pars.R );
       recluster = new Recluster( ReclusterJetDef, 2.0*pars.R );
-    } else if ( arg == "-bg" ){      
+    } else if ( arg == "-bg" ){
       if (++parg==arguments.end() ){ argsokay=false; break; }
       pars.SubtractBg=BGTYPE(atoi(parg->data()));
       if ( pars.SubtractBg<0 || pars.SubtractBg>2 ){ argsokay=false; break; }
@@ -64,6 +64,9 @@ PpZgAnalysis::PpZgAnalysis ( const int argc, const char** const argv )
       pars.PtConsMin = atof((parg)->data());      
       if (++parg ==arguments.end() ){ argsokay=false; break; }
       pars.PtConsMax = atof((parg)->data());
+    } else if ( arg == "-hadcorr" ){
+      if ( ++parg == arguments.end() ){ argsokay=false; break; }
+      pars.HadronicCorr = atof( parg->data());
     } else if ( arg == "-o" ){     
       if (++parg ==arguments.end() ){ argsokay=false; break; }
       pars.OutFileName=*parg;
@@ -149,6 +152,46 @@ PpZgAnalysis::PpZgAnalysis ( const int argc, const char** const argv )
     } else if ( arg == "-N" ){      
       if (++parg==arguments.end() ){ argsokay=false; break; }
       NEvents=atoi(parg->data());
+    } else if ( arg == "-tracksmear" ){
+      if (++parg==arguments.end() ){ argsokay=false; break; }
+      switch ( atoi(parg->data()) ){
+      case 0:
+	cout << "Track Smearing disabled." << endl;
+	break;
+      case 1:
+	cout << "Track Smearing set to pp primaries. DeltapT/pT = 0.01+0.005 pT " << endl;
+	SigmaPt = new TF1("SigmaPt","[0] + [1]*x",0,100);
+	SigmaPt->FixParameter ( 0, 0.01);
+	SigmaPt->FixParameter ( 1, 0.005);
+	break;
+      case 2:
+	cout << "Track Smearing set to AA primaries. DeltapT/pT = 0.005+0.0025 pT " << endl;
+	SigmaPt = new TF1("SigmaPt","[0] + [1]*x",0,100);
+	SigmaPt->FixParameter ( 0, 0.005);
+	SigmaPt->FixParameter ( 1, 0.0025);
+
+	break;
+      case 3:
+	cout << "Track Smearing set to AA globals not implemented. DeltapT/pT = 0.01 * pT^2" << endl;
+	SigmaPt = new TF1("SigmaPt","[0]*x*x",0,100);
+	SigmaPt->FixParameter ( 0, 0.01);
+	break;
+      case 4:
+	cout << "Unrecognized pT smearing option. " << endl;
+	argsokay=false;
+	break;	
+      }
+    } else if ( arg == "-fakeeff" ){
+      if ( ++parg == arguments.end() ){ argsokay=false; break; }
+      pars.FakeEff = atof( parg->data());
+      cout << "Setting fake efficiency to " << pars.FakeEff << endl;
+      if ( pars.FakeEff<0 || pars.FakeEff>1 ){ argsokay=false; break; }
+    } else if ( arg == "-towunc" ){
+      if ( ++parg == arguments.end() ){ argsokay=false; break; }
+      pars.IntTowScale = atoi( parg->data());
+      pars.fTowScale = 1.0 + pars.IntTowScale*pars.fTowUnc;
+      cout << "Setting tower scale to " << pars.fTowScale << endl;
+      if ( pars.IntTowScale<-1 || pars.FakeEff>1 ){ argsokay=false; break; }
     } else if ( arg == "-geantnum" ){      
       if ( ++parg == arguments.end() ){ argsokay=false; break; }
       if ( *parg != "0" && *parg != "1" ){ argsokay=false; break; }
@@ -184,13 +227,25 @@ PpZgAnalysis::PpZgAnalysis ( const int argc, const char** const argv )
 	 << " [-pj PtJetMin PtJetMax]" << endl
 	 << " [-ec EtaConsCut]" << endl
 	 << " [-pc PtConsMin PtConsMax]" << endl
+	 << " [-hadcorr HadronicCorrection]  -- Set to a negative value for MIP correction." << endl
       	 << " [-psc PtSubConsMin PtSubConsMax]" << endl
-      	 << " [--geantnum true|false] (Force Geant run event id hack)" << endl      
+	 << " [-tracksmear number] -- enable track pT smearing. " << endl
+	 << "                      -- 1: pp primaries, 2: AuAu primaries, 3: AuAu (maybe also pp) globals." << endl
+      	 << " [-fakeeff (0..1)] -- enable fake efficiency for systematics. 0.95 is a reasonable example." << endl
+      	 << " [-towunc -1|0|1 ] -- Shift tower energy by this times " << pars.fTowUnc << endl
+      	 << " [-geantnum true|false] (Force Geant run event id hack)" << endl      
 	 << endl << endl
 	 << "NOTE: Wildcarded file patterns should be in single quotes." << endl
 	 << endl;      
     throw std::runtime_error("Not a valid list of options");
   }
+
+  // // adapt high tower cut
+  // // The built-in one kicks in before we can change the tower value, hence adapt the cut
+  // COMMENTED OUT. This may be conceptually wrong.
+  // pars.MinEventEtCut /= pars.fTowScale;
+  // pars.ManualHtCut /= pars.fTowScale;
+	
 
   // Consistency checks
   // ------------------
@@ -277,7 +332,10 @@ PpZgAnalysis::PpZgAnalysis ( const int argc, const char** const argv )
   // Quick and dirty QA histos
   // -------------------------
   QA_TowerEt = new TH2D( "QA_TowerEt","", 4800, 0.5, 4800.5, 80, 0, 80);
-    
+
+  // Provide a gaussian for track pt smearing
+  // ----------------------------------------
+  SmearPt = new TF1( "SmearPt","gaus(0)",-1,1);
 }
 //----------------------------------------------------------------------
 PpZgAnalysis::~PpZgAnalysis(){
@@ -341,14 +399,10 @@ bool PpZgAnalysis::InitChains(){
   if ( pars.intype==INPICO || pars.intype==MCPICO ){
     pReader = SetupReader( Events, pars );
 
-    InitializeReader(  pReader, pars.InputName, NEvents, PicoDebugLevel );
+    InitializeReader(  pReader, pars.InputName, NEvents, PicoDebugLevel, pars.HadronicCorr );
     if ( pReader && pars.InputName.Contains( "picoDst_4_5" ) ) pReader->SetUseRejectAnyway( true );
 
     if ( pars.intype==MCPICO )      TurnOffCuts ( pReader );
-
-    pReader->SetApplyFractionHadronicCorrection(kTRUE);
-    pReader->SetFractionHadronicCorrection(0.9999);
-    pReader->SetRejectTowerElectrons( kFALSE );
 
     cout << "Don't forget to set tower cuts for pReader!!" << endl;
     
@@ -381,14 +435,10 @@ bool PpZgAnalysis::InitChains(){
 
     } else if ( pars.Embintype==INPICO || pars.Embintype==MCPICO ){
       pEmbReader = SetupReader( EmbEvents, pars );
-      InitializeReader(  pEmbReader, pars.EmbInputName, NEmbEvents, PicoDebugLevel );
+      InitializeReader(  pEmbReader, pars.EmbInputName, NEmbEvents, PicoDebugLevel, pars.HadronicCorr );
 
       if ( pEmbReader && pars.InputName.Contains( "picoDst_4_5" ) ) pEmbReader->SetUseRejectAnyway( true );      
       if ( pars.Embintype==MCPICO )      TurnOffCuts ( pEmbReader );
-
-      pEmbReader->SetApplyFractionHadronicCorrection(kTRUE);
-      pEmbReader->SetFractionHadronicCorrection(0.9999);
-      pEmbReader->SetRejectTowerElectrons( kFALSE );      
 
       pEmbReader->ReadEvent( Embevi );
     } else {
@@ -508,28 +558,54 @@ EVENTRESULT PpZgAnalysis::RunEvent (){
   for ( int i=0 ; i<pFullEvent->GetEntries() ; ++i ){
     sv = (TStarJetVector*) pFullEvent->At(i);
     // Ensure kinematic similarity
-    // cerr << "Pseudo" << endl;
-    // cerr << "Pseudo " << sv->Eta() << "  " << sv->Pt() << endl;
-    // cerr << "Pseudo worked" << endl;
-		   
     if ( sv->Pt()< pars.PtConsMin )             continue;
     if ( fabs( sv->Eta() )>pars.EtaConsCut )    continue;
-    particles.push_back( PseudoJet (*sv ) );
-    particles.back().set_user_info ( new JetAnalysisUserInfo( 3*sv->GetCharge(),"",sv->GetTowerID() ) );
-    
-    if ( !sv->GetCharge()) QA_TowerEt->Fill ( sv->GetTowerID(), sv->Et() );
 
+    // Manual high tower cut
+    // WARNING: This needs to be adapted if we want to adapt the HT cut to a shift
     if (
 	( pars.intype==MCPICO || pars.intype==MCTREE || pars.intype==INTREE )
-	 && sv->GetCharge()==0
-	 && fabs(sv->Eta())<1.0
-	 && sv->Pt()>pars.ManualHtCut
-	 ) {
+	&& sv->GetCharge()==0
+	&& fabs(sv->Eta())<1.0
+	&& sv->Pt()>pars.ManualHtCut
+	) {
       // cout << sv->Pt() << "  " << sv->Phi() << "  " << sv->Eta() << "  " << sv->GetCharge() << endl;
       HasManualHighTower=true;
       // if ( HTled ) pHT = sv; // DEBUG: This is slightly FALSE, use to recreate QM, HP
       if ( !pHT || (pHT && sv->Pt()>pHT->Pt()) ) pHT = sv; // This is more correct, use to reproduce new code in ppzg
     }
+
+    // TRACKS
+    // ------
+    if ( sv->GetCharge()!=0 ){
+      // EFFICIENCY uncertainty
+      // ----------------------
+      Double_t mran=gRandom->Uniform(0,1);
+      if ( mran>pars.FakeEff )  {
+	continue;
+      }
+      if ( SigmaPt ){
+	// cout << sv->Pt() << "  " << SigmaPt->Eval( sv->Pt() ) << endl;
+	// float delme = sv->Pt();
+	SmearPt->SetParameters ( 1,0,SigmaPt->Eval( sv->Pt() ));
+	double ptscaler=1 + SmearPt->GetRandom();
+	(*sv) *= ptscaler;
+	// if ( sv->Pt() > 2 ) cout << delme << " --> " << sv->Pt() << " ---> " << ptscaler << "    --> " << (delme - sv->Pt()) / delme << endl;
+      }      
+    }
+
+    // TOWERS
+    // ------
+    // Shift gain
+    if ( !sv->GetCharge()) {      
+      QA_TowerEt->Fill ( sv->GetTowerID(), sv->Et() );
+      (*sv) *= pars.fTowScale; // for systematics
+    }
+
+    particles.push_back( PseudoJet (*sv ) );
+    particles.back().set_user_info ( new JetAnalysisUserInfo( 3*sv->GetCharge(),"",sv->GetTowerID() ) );
+
+
   }
   
   if ( !HasManualHighTower) {
@@ -690,8 +766,22 @@ EVENTRESULT PpZgAnalysis::RunEvent (){
   int njets = JAResult.size();
   
   for (unsigned ijet = 0; ijet < JAResult.size(); ijet++) {
-    // Run SoftDrop and examine the output
     PseudoJet& CurrentJet = JAResult[ijet];
+    // Check whether it fulfills neutral energy fraction criteria
+    // This could be done earlier in the jet selector
+    if ( pars.MaxJetNEF<1.0 ){
+      PseudoJet NeutralPart = join ( OnlyNeutral( CurrentJet.constituents() ) );
+      if ( NeutralPart.pt()  / CurrentJet.pt() > pars.MaxJetNEF ) continue;
+
+      PseudoJet ChargedPart = join ( OnlyCharged( CurrentJet.constituents() ) );
+      double q = 0;
+      for ( PseudoJet& c : ChargedPart.constituents() ){
+	q+= c.user_info<JetAnalysisUserInfo>().GetQuarkCharge();
+      }
+      CurrentJet.set_user_info ( new JetAnalysisUserInfo( q ) );
+    }
+    
+    // Run SoftDrop and examine the output
     PseudoJet sd_jet = sd( CurrentJet );
     // cout << " Grooming Result: " << CurrentJet.pt() << "  --> " << sd_jet.pt() << endl << endl;
 
@@ -719,12 +809,21 @@ EVENTRESULT PpZgAnalysis::RunEvent (){
   return EVENTRESULT::JETSFOUND;
 }
 //----------------------------------------------------------------------
-void InitializeReader(  std::shared_ptr<TStarJetPicoReader> pReader, const TString InputName, const Long64_t NEvents, const int PicoDebugLevel ){
+void InitializeReader(  std::shared_ptr<TStarJetPicoReader> pReader, const TString InputName, const Long64_t NEvents,
+			const int PicoDebugLevel, const double HadronicCorr ){
 
   TStarJetPicoReader& reader = *pReader;
-  reader.SetApplyFractionHadronicCorrection(kTRUE);
-  reader.SetFractionHadronicCorrection(0.9999);
-  reader.SetRejectTowerElectrons( kFALSE );
+
+  if ( HadronicCorr < 0 ){
+    reader.SetApplyFractionHadronicCorrection(kFALSE);
+    reader.SetApplyMIPCorrection(kTRUE);
+    reader.SetRejectTowerElectrons( kTRUE );
+  } else {
+    reader.SetApplyFractionHadronicCorrection(kTRUE);
+    reader.SetFractionHadronicCorrection( HadronicCorr );
+    reader.SetApplyMIPCorrection(kFALSE);
+    reader.SetRejectTowerElectrons( kFALSE );
+  }
     
   // Run 11: Use centrality cut
   if ( InputName.Contains("NPE") ){

@@ -1,0 +1,48 @@
+
+for i in Results/*SystGeant12_NoEff_NoBg*_JP2.root ; do
+    root -l -b -q macros/MatchGeantToPythia.cxx+\(\"$i\",\"Results/McGeant12_NoEff_NoBg_all.root\"\)
+done
+
+for i in Results/AEff*SystGeant12_NoEff_NoBg_JP2_WithMisses*.root ; do
+   root -l -b -q macros/DoUnfolding.cxx+\(\"$i\",\"Results/ForUnfolding_ForPaper_Pp12_JP2_NoEff_NoBgSub.root\"\)
+done
+
+for i in Results/AEff*SystGeant12_NoEff_NoBg_HT54_JP2_WithMisses*.root ; do
+   root -l -b -q macros/DoUnfolding.cxx+\(\"$i\",\"Results/ForUnfolding_ForPaper_Pp12_HT54_JP2_NoEff_NoBgSub.root\"\)
+done
+
+
+
+for i in Results/*SystGeant_NoEff_NoBg_HT54.root ; do
+    root -l -b -q macros/MatchGeantToPythia.cxx+\(\"$i\",\"Results/Recut_McGeant_NoEff_NoBg_MB.root\"\)
+done
+
+for i in Results/*SystGeant_MIP_NoEff_NoBg_HT54.root ; do
+    root -l -b -q macros/MatchGeantToPythia.cxx+\(\"$i\",\"Results/Recut_McGeant_NoEff_NoBg_MB.root\"\)
+done
+
+for i in Results/AEff*SystGeant_NoEff_NoBg_HT54_WithMisses*.root ; do
+   root -l -b -q macros/DoUnfolding.cxx+\(\"$i\",\"Results/ForUnfolding_Recut_Pp_HT54_NoEff_NoBgSub.root\"\)
+done
+
+for i in Results/AEff*SystGeant_MIP_NoEff_NoBg_HT54_WithMisses*.root ; do
+   root -l -b -q macros/DoUnfolding.cxx+\(\"$i\",\"Results/ForUnfolding_Recut_Pp_HT54_MIP_NoEff_NoBgSub.root\"\)
+done
+
+
+for i in Results/AEff*SystGeant12_NoEff_NoBg_JP2_WithMisses*.root ; do
+   root -l -b -q macros/DoUnfolding.cxx+\(\"$i\",\"Results/ForUnfolding_ForPaper_Pp12_JP2_NoEff_NoBgSub.root\"\)
+done
+
+for i in Results/*SystGeant12_HC50_NoEff_NoBg*_JP2.root ; do
+    root -l -b -q macros/MatchGeantToPythia.cxx+\(\"$i\",\"Results/McGeant12_NoEff_NoBg_all.root\"\)
+done
+
+
+
+
+( for log in `grep -L Done logs/*SystGeant_NoEff_NoBg_HT54*out` ; do grep $log Rerun_SystGeant_NoEff_NoBg_HT54.txt; done; ) |cut -f1 -d" " --complement
+( for log in `grep -L Done logs/*SystGeant12_HC50_NoEff*out` ; do grep $log Rerun_SystGeant12_HC50_NoEff_NoBg_JP2.txt; done; ) |cut -f1 -d" " --complement
+
+( for log in `grep -L Done logs/*SystGeant_MIP_NoEff_NoBg_HT54*out` ; do grep $log Rerun_SystGeant_MIP_NoEff_NoBg_HT54.txt; done; ) |cut -f1 -d" " --complement
+

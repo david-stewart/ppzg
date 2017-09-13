@@ -12,14 +12,25 @@ set ExecPath = `pwd`
 #set RMod = R0.2_
 #set RMod = Pt1_
 
-# set inbase  = McGeant12_NoEff_NoBg_MB_Cleanpp12Pico
-# set outbase = McGeant12_NoEff_NoBg_MB
+# set inbase  = ReCut_McGeant12_NoEff_NoBg_MB_Cleanpp12Pico
+# set outbase = ReCut_McGeant12_NoEff_NoBg_MB
 
-set inbase  = Geant12_NoEff_NoBg_HT54_Cleanpp12Pico
-set outbase = Geant12_NoEff_NoBg_HT54
+# set inbase  = ReCut_Geant12_NoEff_NoBg_HT54_Cleanpp12Pico
+# set outbase = ReCut_Geant12_NoEff_NoBg_HT54
+
+# set inbase  = ReCut_Geant12_NoEff_NoBg_HT54_JP_Cleanpp12Pico
+# set outbase = ReCut_Geant12_NoEff_NoBg_HT54_JP
 
 # set inbase  = Geant12_NoEff_NoBg_MB_Cleanpp12Pico
 # set outbase = Geant12_NoEff_NoBg_MB
+
+# set inbase  = Test_Geant12_NoEff_NoBg_all_Cleanpp12Pico
+# set outbase = Test_Geant12_NoEff_NoBg_all
+
+set inbase  = McGeant12_NoEff_NoBg_all_Cleanpp12Pico
+set outbase = McGeant12_NoEff_NoBg_all
+
+
 
 set binjobs=''
 set binouts=''

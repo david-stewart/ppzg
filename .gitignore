@@ -11,6 +11,9 @@ logs
 *.log
 *.err
 
+## And other helpers
+Rerun*.txt
+
 ## Specific Apple stuff
 .DS_Store*
 ._*

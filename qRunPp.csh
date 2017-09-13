@@ -14,7 +14,6 @@ setenv pcmax 10000
 setenv Nevent -1
 
 setenv intype pico
-
 setenv chainname JetTree
 setenv etacut 1
 
@@ -35,7 +34,6 @@ setenv pjmin 5
 setenv pjmax 2000
 
 set ResultDir   = Results
-#set ResultDir   = Results/Pieces
 
 setenv pcmin 0.2
 
@@ -43,17 +41,17 @@ setenv pcmin 0.2
 #setenv pcmin 2.0
 #setenv NameBase HighConsGroom
 
-# setenv R 0.4
-# setenv ht 5.4
-# setenv trig ppHT
-# setenv bg 0
-# setenv OutBase Pp_HT54_NoEff_NoBgSub
-
 setenv R 0.4
 setenv ht 5.4
-setenv trig ppJP
+setenv trig ppHT
+
+# setenv bg 0
+# setenv hadcorr 0.999999
+# setenv OutBase Recut_Pp_HT54_NoEff_NoBgSub
+
 setenv bg 0
-setenv OutBase Pp_JP_HT54_NoEff_NoBgSub
+setenv hadcorr -1
+setenv OutBase Recut_Pp_HT54_MIP_NoEff_NoBgSub
 
 # setenv bg 1
 # setenv OutBase Pp_HT54_NoEff_AreaSub
@@ -69,8 +67,9 @@ set ErrFile     = logs/${OutBase}.err
 
 set OutName     = ${ResultDir}/${OutBase}.root
 
-set Args = ( -i $Files -intype ${intype} -c ${chainname} -trig ${trig} -o ${OutName} -bg ${bg} -ht ${ht} -N $Nevent -pj ${pjmin} ${pjmax} -pc ${pcmin} ${pcmax} -lja $lja -ec $etacut -R $R  -embi ${embi} )
-
+set Args = ( -i $Files -intype ${intype} -c ${chainname} -trig ${trig} -o ${OutName} -bg ${bg} -ht ${ht}  )
+set Args = ( $Args -N $Nevent -pj ${pjmin} ${pjmax} -pc ${pcmin} ${pcmax} -lja $lja -ec $etacut -R $R  -embi ${embi} -hadcorr ${hadcorr} )
+		
 echo Submitting:
 echo $Exec $Args
 echo "Logging output to " $LogFile

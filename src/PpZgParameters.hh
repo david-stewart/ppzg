@@ -82,6 +82,18 @@ public :
   double NMinFit=20;             ///< minimum number of fit points for tracks
   double FitOverMaxPointsCut=0.52; ///< NFit / NFitPossible
 
+  double HadronicCorr = 0.9999; ///< Fraction of hadronic correction
+
+  double FakeEff = 1.0; ///< fake efficiency for systematics. 0.95 is a reasonable example.
+
+  Int_t IntTowScale=0;
+  /// Tower GAIN: 4.8%
+  Float_t fTowUnc=0.048;
+  /// Tower scale for uncertainty;
+  float fTowScale=1.0;
+  
+
+  
   // ************************************
   // Do NOT cut high tracks and towers!
   // Instead, reject the whole event when
@@ -109,6 +121,14 @@ public :
   // Switch for fixing. Should be turned on by default for Geant files, off otherwise.
   bool UseGeantNumbering=false;
 
+  // MC example
+  // ----------
+  TString InputName = "Data/AlternateRhicPythia/LargeEtaPythiaOnly_1_ptHat=25_35.root"; ///< Input name
+  INTYPE intype = MCTREE;             ///< Input type (can be a pico dst, a result tree, an MC tree)
+  TString ChainName = "tree";         ///< Name of the input chain
+  TString TriggerName = "All";        ///< Trigger type (All, MB, HT, pp, ppHT, ppJP)
+
+  
   // // MC example
   // // ----------
   // TString InputName = "Data/RhicPythia/RhicPythiaOnly_10_ptHat=20_23.root"; ///< Input name
@@ -130,13 +150,20 @@ public :
   // TString ChainName = "JetTree";      ///< Name of the input chain
   // TString TriggerName = "All";        ///< Trigger type (All, MB, HT, pp, ppHT, ppJP)
 
-  // real data pico example
-  // ----------------------
-  TString InputName = "Data/ppHT/*.root"; ///< Input name
-  INTYPE intype = INPICO;                 ///< Input type (can be a pico dst, a result tree, an MC tree)
-  TString ChainName = "JetTree";          ///< Name of the input chain
-  TString TriggerName = "ppHT";           ///< Trigger type (All, MB, HT, pp, ppHT, ppJP)
+  // // real data pico example
+  // // ----------------------
+  // TString InputName = "Data/ppHT/*.root"; ///< Input name
+  // INTYPE intype = INPICO;                 ///< Input type (can be a pico dst, a result tree, an MC tree)
+  // TString ChainName = "JetTree";          ///< Name of the input chain
+  // TString TriggerName = "ppHT";           ///< Trigger type (All, MB, HT, pp, ppHT, ppJP)
     
+  // // real data pico example run 12
+  // // -----------------------------
+  // TString InputName = "Data/ppJP2Run12/sum8.root"; ///< Input name
+  // INTYPE intype = INPICO;                 ///< Input type (can be a pico dst, a result tree, an MC tree)
+  // TString ChainName = "JetTree";          ///< Name of the input chain
+  // TString TriggerName = "ppJP";           ///< Trigger type (All, MB, HT, pp, ppHT, ppJP)
+
   // // real AuAu data pico example
   // // -------------------
   // TString InputName = "Data/SmallAuAu/Small_Clean809.root"; ///< Input name

@@ -14,7 +14,6 @@ setenv pcmax 10000
 setenv Nevent -1
 
 setenv intype pico
-
 setenv chainname JetTree
 setenv etacut 1
 
@@ -43,11 +42,24 @@ setenv pcmin 0.2
 #setenv pcmin 2.0
 #setenv NameBase HighConsGroom
 
+# setenv R 0.4
+# setenv ht 5.4
+# setenv trig ppJP2
+# setenv bg 0
+# setenv OutBase ForPaper_Pp12_HT54_JP2_NoEff_NoBgSub
+
 setenv R 0.4
-setenv ht 5.4
-setenv trig ppJP
+setenv ht -1
+setenv trig ppJP2
 setenv bg 0
-setenv OutBase Default_Pp12_HT54_NoEff_NoBgSub
+# setenv hadcorr 0.9999999
+# setenv OutBase ForPaper_Pp12_JP2_NoEff_NoBgSub
+
+# setenv hadcorr 0.5
+# setenv OutBase ForPaper_Pp12_JP2_HC50_NoEff_NoBgSub
+
+setenv hadcorr -1
+setenv OutBase ForPaper_Pp12_JP2_MIP_NoEff_NoBgSub
 
 # setenv bg 1
 # setenv OutBase Pp_HT54_NoEff_AreaSub
@@ -64,7 +76,8 @@ foreach File ( Data/ppJP2Run12/sum*root )
     set LogFile     = logs/${OutBase}_${FileBase}.out
     set ErrFile     = logs/${OutBase}_${FileBase}.err
 
-    set Args = ( -i $File -intype ${intype} -c ${chainname} -trig ${trig} -o ${OutName} -bg ${bg} -ht ${ht} -N $Nevent -pj ${pjmin} ${pjmax} -pc ${pcmin} ${pcmax} -lja $lja -ec $etacut -R $R  -embi ${embi} )
+    set Args = ( -i $File -intype ${intype} -c ${chainname} -trig ${trig} -o ${OutName} -bg ${bg} -ht ${ht} -N $Nevent -pj ${pjmin} ${pjmax} -pc ${pcmin} ${pcmax} )
+    set Args = ( $Args -lja $lja -ec $etacut -R $R  -embi ${embi} -hadcorr ${hadcorr} )
 
     echo Submitting:
     echo $Exec $Args

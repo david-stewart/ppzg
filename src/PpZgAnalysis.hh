@@ -12,6 +12,7 @@
 #include "PpZgParameters.hh"
 #include "JetAnalyzer.hh"
 
+#include "TF1.h"
 #include "TH1.h"
 #include "TH2.h"
 #include "TH3.h"
@@ -117,9 +118,13 @@ ostream & operator<<(ostream & ostr, const PseudoJet& jet);
 /** 
     Helper for chains
  */
-void InitializeReader(  std::shared_ptr<TStarJetPicoReader> pReader, const TString InputName, const Long64_t NEvents, const int PicoDebugLevel );
+void InitializeReader(  std::shared_ptr<TStarJetPicoReader> pReader, const TString InputName, const Long64_t NEvents,
+			const int PicoDebugLevel, const double HadronicCorr=0.999999 );
 
-  
+static const Selector NotGhost = !fastjet::SelectorIsPureGhost ();     ///< Helper useful outside the class as well
+static const Selector OnlyCharged = NotGhost && ( SelectorChargeRange( -3, -1) || SelectorChargeRange( 1, 3) );     ///< Helper useful outside the class as well
+static const Selector OnlyNeutral = NotGhost && SelectorChargeRange( 0, 0);     ///< Helper useful outside the class as well
+
 
 /**
    The main class
@@ -173,6 +178,7 @@ private :
   Long64_t Embevi =0; // Starting point will be changed!  
 
   int PicoDebugLevel=0; /// Control DebugLevel in picoDSTs
+  // int PicoDebugLevel=1; /// Control DebugLevel in picoDSTs
 
   // Note that the following are NOT unique across MC trees
   // My fault, will try to fix with a quick and dirty trick:
@@ -199,15 +205,18 @@ private :
   // fastjet::Selector slo;                ///< compound selector for low  p<SUB>T</SUB> constituents
   // fastjet::Selector shi;                ///< compound selector for high p<SUB>T</SUB> constituents
 
-  Selector NotGhost = !fastjet::SelectorIsPureGhost ();    
-  Selector OnlyCharged = NotGhost && ( SelectorChargeRange( -3, -1) || SelectorChargeRange( 1, 3) );
-  Selector OnlyNeutral = NotGhost && SelectorChargeRange( 0, 0);
-
   JetAnalyzer *pJA=0;
   JetAnalyzer *pEmbJA=0;
   Subtractor* pBackgroundSubtractor =  0;
   Subtractor* pEmbBackgroundSubtractor =  0;
   ConstituentSubtractor* pConstituentBackgroundSubtractor = 0;
+
+  /// Resolution Smearing width for tracks
+  /// This function should return sigma (pT - pT_truth) for a given pT
+  TF1 * SigmaPt;
+  /// Actual smearing factor
+  /// Gaussian around 1 with the width from SigmaPt
+  TF1 * SmearPt;
 
   // For matching
   // ------------
@@ -226,18 +235,7 @@ private :
   TClonesArray *pSavedHardPartons=0;           ///< original hard scatter in PYTHIA
   TClonesArray *pSavedHardPartonNames=0;       ///< original hard scatter PID in PYTHIA
   vector<GroomingResultStruct> GroomingResult; ///< grooming result in a nice structured package
-  
-  
-  // std::vector<fastjet::PseudoJet> pHi;     ///< High pT constituents
-  // std::vector<fastjet::PseudoJet> pLo;     ///< Low pT constituents
-
-  // std::vector<fastjet::PseudoJet> JAhiResult;  ///< Unaltered clustering result with high pT constituents
-  // std::vector<fastjet::PseudoJet> JAloResult;  ///< Unaltered clustering result with low pT constituents
-  
-  // std::vector<fastjet::PseudoJet> DiJetsHi;    ///< Dijet result with high pT constituents
-  // std::vector<fastjet::PseudoJet> DiJetsLo;    ///< Dijet result with low pT constituents
-
-  
+    
 public:  
 
   /** Standard constructor. Parse vectorized argv.
@@ -309,6 +307,8 @@ public:
   inline double GetRho()                             { return rho; }
 
   inline const vector<PseudoJet>& GetParticles() const     { return particles; }
+  // void SetSigmaPt( TF1* f ){  SigmaPt = f; };
+
   // /// Get minimum jet p<SUB>T</SUB>
   // inline double GetJet_ptmin ( )                   { return pars.jet_ptmin; };
   // /// Set minimum jet p<SUB>T</SUB>
@@ -392,7 +392,7 @@ public:
   // inline std::vector<fastjet::PseudoJet> GetDiJetsHi() {return DiJetsHi; };
   // /// Handle to Dijet result with low pT constituents
   // inline std::vector<fastjet::PseudoJet> GetDiJetsLo() {return DiJetsLo; };
-
+  
 };  
 
 /** Helper to perform the TStarJetPicoReader initialization

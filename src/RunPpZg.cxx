@@ -74,6 +74,33 @@ int main( int argc, const char** argv ){
     cerr << "Initialization failed with exception " << e.what() << endl;
     return -1;
   }
+
+  // TF1* SigmaPt = new TF1("SigmaPt","[0] + [1]*x",0,100);
+  
+  // // // Kolja, primary in p+p:
+  // // // sigma ( pT /pT )  ∼ 0.01 + 0.005*pT /(GeV/c)  //  --> 1% @ 0 GeV, 1.5% @ 1 GeV, 4% @ 6 GeV
+  // // SigmaPt->FixParameter ( 0, 0.01);
+  // // SigmaPt->FixParameter ( 1, 0.005);
+
+  // // // Steven, primary in Au+Au:
+  // // // sigma pT/pT  =  (0.5+0.25 pT)%. //  --> 0.5% @ 0 GeV, 1% @ 1 GeV, 2% @ 6 GeV
+  // // SigmaPt->FixParameter ( 0, 0.005);
+  // // SigmaPt->FixParameter ( 1, 0.0025);
+
+  // // Nick: relative:
+  // // 1% @ 1 GeV, 3% @ 5 GeV
+  // // Nick: in quadrature --> 1.5% @ 1 GeV, 4% @ 5 GeV
+  // SigmaPt->FixParameter ( 0, 0.00875);
+  // SigmaPt->FixParameter ( 1, 0.00625);
+  
+  // // Jan, globals:
+  // // Can't be right....
+  // // sigma ( pT /pT ) ~ 0.01 * pT^2 // --> 0.0% @ 0 GeV, 1% @ 1 GeV, 3.6% @ 6 GeV
+  // // TF1* SigmaPt = new TF1("SigmaPt","[0]*x*x",0,100);
+  // // SigmaPt->FixParameter ( 0, 0.01);
+    
+
+  // ppzg->SetSigmaPt ( SigmaPt );
   
   if ( ppzg->InitChains() == false ){
     cerr << "Chain initialization failed" << endl;
@@ -212,6 +239,8 @@ int main( int argc, const char** argv ){
 
   TClonesArray Jets( "TStarJetVectorJet" );
   ResultTree->Branch("Jets", &Jets );
+  TClonesArray ChargedJets( "TStarJetVectorJet" );
+  ResultTree->Branch("ChargedJets", &ChargedJets );
   TClonesArray GroomedJets( "TStarJetVectorJet" ); 
   ResultTree->Branch("GroomedJets", &GroomedJets );
   TClonesArray sj1( "TStarJetVectorJet" );
@@ -398,17 +427,27 @@ int main( int argc, const char** argv ){
       int ijet=0;
       for ( auto& gr : GroomingResult ){	
 	zg[ijet]=gr.zg;
-	new ( Jets[ijet] )               TStarJetVectorJet ( TStarJetVector( MakeTLorentzVector( gr.orig) ) );
-	new ( GroomedJets[ijet] )        TStarJetVectorJet ( TStarJetVector( MakeTLorentzVector( gr.groomed) ) );
-	zg[ijet] = gr.zg;
-		  
+
 	TStarJetVector sv = TStarJetVector( MakeTLorentzVector( gr.orig) );
+	sv.SetCharge( gr.orig.user_info<JetAnalysisUserInfo>().GetQuarkCharge() / 3 );
 	if ( HT.Pt()>1e-1 && HT.DeltaR( sv ) <pars.R ){
 	  if ( HTJet.Pt()<sv.Pt() ) {
 	    HTJet = sv;
 	    HTJetZg = gr.zg;
 	  }	  
       	} 
+
+	new ( Jets[ijet] )               TStarJetVectorJet ( sv );
+	PseudoJet ChargedPart = join ( OnlyCharged( gr.orig.constituents() ) );
+	TStarJetVector csv = TStarJetVector( MakeTLorentzVector( ChargedPart ) );
+	csv.SetCharge( gr.orig.user_info<JetAnalysisUserInfo>().GetQuarkCharge() / 3 );
+	new ( ChargedJets[ijet] )        TStarJetVectorJet ( csv );
+	
+	new ( GroomedJets[ijet] )        TStarJetVectorJet ( TStarJetVector( MakeTLorentzVector( gr.groomed) ) );
+	zg[ijet] = gr.zg;
+		  
+	// cout << gr.orig.user_info<JetAnalysisUserInfo>().GetQuarkCharge() << endl;
+
 
 	if ( gr.orig.pt()>200 ){ // DEBUG
 	  vector<PseudoJet> particles = sorted_by_pt(ppzg->GetConstituents());
