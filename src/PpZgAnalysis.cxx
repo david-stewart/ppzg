@@ -9,6 +9,7 @@
 #include "PpZgAnalysis.hh"
 #include <stdlib.h>     // for getenv, atof, atoi
 
+
 using std::cout;
 using std::cerr;
 using std::endl;
@@ -778,13 +779,27 @@ EVENTRESULT PpZgAnalysis::RunEvent (){
       for ( PseudoJet& c : ChargedPart.constituents() ){
 	q+= c.user_info<JetAnalysisUserInfo>().GetQuarkCharge();
       }
-      CurrentJet.set_user_info ( new JetAnalysisUserInfo( q ) );
+
+      JetAnalysisUserInfo* userinfo = new JetAnalysisUserInfo( q );
+      // Save neutral energy fraction in multi-purpose field
+      userinfo->SetNumber(NeutralPart.pt()  / CurrentJet.pt());
+      CurrentJet.set_user_info ( userinfo );
     }
     
     // Run SoftDrop and examine the output
-    PseudoJet sd_jet = sd( CurrentJet );
-    // cout << " Grooming Result: " << CurrentJet.pt() << "  --> " << sd_jet.pt() << endl << endl;
+    // PseudoJet sd_jet = sd( CurrentJet );
 
+    // DEBUG
+    vector<PseudoJet> temp=reshuffle (CurrentJet.constituents());
+    // JetDefinition TempJetDef ( pars.LargeJetAlgorithm, 1.0 );
+    // JetAnalyzer TempJA (temp, TempJetDef);
+    JetDefinition TempJetDef    = JetDefinition( fastjet::cambridge_algorithm, pars.R );
+    JetAnalyzer TempJA (temp, TempJetDef);
+    PseudoJet newjet = sorted_by_pt( select_jet ( JA.inclusive_jets() ) ).at(0);    
+    PseudoJet sd_jet = sd( newjet );
+    // END DEBUG
+
+    // cout << " Grooming Result: " << CurrentJet.pt() << "  --> " << sd_jet.pt() << endl << endl;
     if ( sd_jet == 0){
       // cout <<  " FOREGROUND Original Jet:   " << CurrentJet << endl;
       // if ( pBackgroundSubtractor ) cout <<  " FOREGROUND rho A: " << JA.GetBackgroundEstimator()->rho() * CurrentJet.area() << endl;	  
@@ -1075,3 +1090,30 @@ ostream & operator<<(ostream & ostr, const PseudoJet& jet) {
   return ostr;
 }
 //----------------------------------------------------------------------
+
+// ------------------------------------------------------------
+// DELETE ME, ONLY FOR EXPERIMENTING
+
+vector<PseudoJet> reshuffle ( const vector<PseudoJet> orig ){
+  vector< pair<double,double> > phieta;
+
+  vector<PseudoJet> shuffled;
+  for ( auto j : orig ){
+    phieta.push_back ( pair<double,double> (j.phi(), j.eta()) );
+    shuffled.push_back ( j );
+  }
+
+  std::random_device rd;
+  std::mt19937 g(rd());
+  std::shuffle ( phieta.begin(), phieta.end(), g );
+  // std::random_shuffle ( phieta.begin(), phieta.end() );
+    
+  for ( int i=0 ; i<shuffled.size() ; ++i ){
+    PseudoJet& j = shuffled.at(i);
+    j.reset_PtYPhiM ( j.pt(), phieta.at(i).second, phieta.at(i).first, j.m() );
+  }
+
+  return shuffled;
+}
+
+

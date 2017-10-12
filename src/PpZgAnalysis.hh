@@ -54,6 +54,9 @@ using namespace std;
 using namespace fastjet;
 using namespace contrib;
 
+#include <random>
+#include <algorithm>
+vector<PseudoJet> reshuffle ( const vector<PseudoJet> orig );
 
 /** 
     A helper for geant data
