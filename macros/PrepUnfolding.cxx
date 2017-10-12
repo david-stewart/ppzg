@@ -19,11 +19,12 @@
 #include <TRandom.h>
 #include <TSystem.h>
 
-
+#ifndef __CINT__
 #include "TStarJetVectorContainer.h"
 #include "TStarJetVector.h"
 #include "TStarJetVectorJet.h"
 #include "TStarJetPicoUtils.h"
+#endif //__CINT__
 
 #include <iostream>
 #include <vector>
@@ -54,14 +55,16 @@ int PrepUnfolding ( ) {
     
   // Input
   // -----
-  TString PpLevelFile = "Results/Recut_Pp_HT54_MIP_NoEff_NoBgSub.root"; // pp-like events
-  // --- Use one of these for Run 12: ---
-  // TString PpLevelFile = "Results/ForPaper_Pp12_HT54_JP2_NoEff_NoBgSub.root"; // pp-like events
-  // TString PpLevelFile = "Results/ForPaper_Pp12_JP2_NoEff_NoBgSub.root"; // pp-like events
+  // TString PpLevelFile = "Results/Recut_Pp_HT54_MIP_NoEff_NoBgSub.root"; // pp-like events
+  // --- Use this for Run 12: ---
+  TString PpLevelFile = "Results/ForPaper_Pp12_JP2_NoEff_NoBgSub.root"; // pp-like events
   // --- MIP or other hadronic correction cross check ---
   // TString PpLevelFile = "Results/ForPaper_Pp12_JP2_MIP_NoEff_NoBgSub.root"; // pp-like events
   // --- Pythia8 ---
   // TString PpLevelFile = "Results/ForPaper_Pythia8_NoEff_NoBgSub.root";
+  // TEST
+  // TString PpLevelFile = "Results/RESHUFFLED_Pythia8_NoEff_NoBgSub.root";
+  // TString PpLevelFile = "Results/R0.6_ForPaper_Pp12_JP2_NoEff_NoBgSub.root";
   
 
   // Output
@@ -98,6 +101,11 @@ int PrepUnfolding ( ) {
   TStarJetVectorJet* PpHTJet = new TStarJetVectorJet(); // The jet containing it
   PpChain->SetBranchAddress("HTJet", &PpHTJet);  
 
+  double delta_R[1000];
+  PpChain->SetBranchAddress("delta_R",  delta_R );
+
+  double nef[1000];
+  PpChain->SetBranchAddress("nef", nef );
 
   int ppeventid;
   int pprunid;
@@ -142,6 +150,10 @@ int PrepUnfolding ( ) {
   float ptminMeas =  0;
   float ptmaxMeas =  60;
 
+  int nDRBinsMeas = 120;
+  float drminMeas = 0;
+  float drmaxMeas = 0.6;
+
   // Only need one of these
   TH2D* IncMeas2D  = new TH2D( "IncMeas2D", "Measured z_{g} vs. p_{T};p_{T};z_{g}", nPtBinsMeas, ptminMeas, ptmaxMeas, nZgBinsMeas, zgminMeas, zgmaxMeas);
   TH2D* IncTestMeas2D  = new TH2D( "IncTestMeas2D", "TEST Measured z_{g} vs. p_{T};p_{T};z_{g}", nPtBinsMeas, ptminMeas, ptmaxMeas, nZgBinsMeas, zgminMeas, zgmaxMeas);
@@ -151,6 +163,14 @@ int PrepUnfolding ( ) {
 
   // TH2D* RecoilMeas2D  = new TH2D( "RecoilMeas2D", "TRAIN z_{g}^{lead} vs. p_{T}^{lead}, Pythia in MC", nPtBinsMeas, ptminMeas, ptmaxMeas, nZgBinsMeas, zgminMeas, zgmaxMeas);
   // TH2D* RecoilTestMeas2D  = new TH2D( "RecoilTestMeas2D", "TEST z_{g}^{lead} vs. p_{T}^{lead}, Pythia in MC", nPtBinsMeas, ptminMeas, ptmaxMeas, nZgBinsMeas, zgminMeas, zgmaxMeas);
+
+  // For further studies
+  TH2D* DeltaR2D  = new TH2D( "DeltaR2D", "Measured #Delta R vs. p_{T};p_{T};z_{g}", nPtBinsMeas, ptminMeas, ptmaxMeas, nDRBinsMeas, drminMeas, drmaxMeas);
+
+  // For Pythia
+  TH2D* PythiaTruth2D=0;
+  if ( PpLevelFile.Contains ("ythia") )
+    PythiaTruth2D  = new TH2D( "PythiaTruth2D", "PythiaTruth z_{g} vs. p_{T};p_{T};z_{g}", nPtBinsTrue, ptminTrue, ptmaxTrue, nZgBinsTrue, zgminTrue, zgmaxTrue);
 
   // ------------------------
   // Loop over measured level
@@ -173,6 +193,12 @@ int PrepUnfolding ( ) {
       if ( fabs ( ppjet->Eta() ) < EtaCut ) {
 	IncMeas2D->Fill( ppjet->Pt(), ppzg[j], ppweight );
 	IncTestMeas2D->Fill( ppjet->Pt(), ppzg[j], ppweight );
+
+	// DEBUG!
+	// if ( nef[j] >0.7 )
+	DeltaR2D->Fill( ppjet->Pt(), delta_R[j], ppweight );
+	
+	if ( PythiaTruth2D ) PythiaTruth2D->Fill( ppjet->Pt(), ppzg[j], ppweight );
       }
     }
 
