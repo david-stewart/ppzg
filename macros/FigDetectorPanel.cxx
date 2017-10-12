@@ -1,6 +1,8 @@
 // Based on 
 // $ROOTSYS/tutorials/graphics/canvas2.C
 
+#include"ZgPaperConsts.hxx"
+
 void CanvasPartition(TCanvas *C,const Int_t Nx = 2,const Int_t Ny = 2,
                      Float_t lMargin = 0.15, Float_t rMargin = 0.05,
                      Float_t bMargin = 0.15, Float_t tMargin = 0.05);
@@ -29,8 +31,6 @@ int FigDetectorPanel( ){
   gStyle->SetTitleW(0.8f);
   gStyle->SetTitleBorderSize(0);	//Title box border thickness
 
-  Float_t small = 1e-5; // for panel setup
-
   TFile * ppfile = new TFile("Results/ForUnfolding_ForPaper_Pp12_JP2_NoEff_NoBgSub.root");
   TFile * geantfile = new TFile("Results/AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_McGeant12_NoEff_NoBg_all.root");
     
@@ -43,14 +43,11 @@ int FigDetectorPanel( ){
   TH2D* geant2d = (TH2D*) geantfile->Get("IncMeas2D");
   geant2d->SetName("geant2d");
 
-  double Incbins[] = { 10, 15, 20, 25, 30, 40, 60};
-  int nIncbins  = sizeof(Incbins) / sizeof(Incbins[0])-1;
-
   TObjArray pphistos( 6 );
   TObjArray geanthistos( 6 );
-  for ( int i=0 ; i<nIncbins ; ++i ){
-    float ptleft  = Incbins[i];
-    float ptright = Incbins[i+1];
+  for ( int i=0 ; i<zgconsts::nIncbins ; ++i ){
+    float ptleft  = zgconsts::Incbins[i];
+    float ptright = zgconsts::Incbins[i+1];
 
     TString name = "ppmeas_"; name += int(ptleft+0.01); name += int(ptright+0.01);
     TH1D* ppmeas =

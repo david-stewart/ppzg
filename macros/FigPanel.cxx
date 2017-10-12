@@ -1,6 +1,8 @@
 // Based on 
 // $ROOTSYS/tutorials/graphics/canvas2.C
 
+#include<ZgPaperConsts.hxx>
+
 void CanvasPartition(TCanvas *C,const Int_t Nx = 2,const Int_t Ny = 2,
                      Float_t lMargin = 0.15, Float_t rMargin = 0.05,
                      Float_t bMargin = 0.15, Float_t tMargin = 0.05);
@@ -156,6 +158,7 @@ int FigPanel(
   TFile* fHP = new TFile( "~/BasicAj/AjResults/UnfoldedPpSystematics_Histos.root", "READ");
   // TFile* fP8 = new TFile( "~/BasicAj/AjResults/UnfoldedPpSystematics_Histos.root", "READ");
   TFile* fP8 = new TFile( "Results/CutUp_ForPaper_Pythia8_NoEff_NoBgSub.root", "READ");
+  // TFile* fP8 = new TFile( "Results/CutUp_RESHUFFLED_Pythia8_NoEff_NoBgSub.root", "READ");
 
   TLegend* leg;
   TString s;
@@ -231,54 +234,24 @@ int FigPanel(
   
       leg->SetFillStyle(0);
       // leg->SetMargin(0.1);
-    
+
       switch (histcount){
       case 0 :
-	h->SetMarkerStyle( 20 );
-	h->SetMarkerSize( 1 );
-	h->SetMarkerColor( kBlack ); h->SetLineColor( kBlack );
-	sysunfold->SetFillColor( kGray );
-	systot->SetFillColor( kGray );
 	ptleft=10; ptright=15;	      
 	break;
       case 1 :
-	h->SetMarkerStyle( 27 );
-	h->SetMarkerSize( 1.5 );
-	h->SetMarkerColor( kRed ); h->SetLineColor( kRed );
-	sysunfold->SetFillColor( kRed-10 );
-	systot->SetFillColor( kRed-10 );
 	ptleft=15; ptright=20;
 	break;
       case 2 :
-	h->SetMarkerStyle( 29 );
-	h->SetMarkerSize( 1.6 );
-	h->SetMarkerColor( kBlue ); h->SetLineColor( kBlue );
-	sysunfold->SetFillColor( kBlue-10 );
-	systot->SetFillColor( kBlue-10 );
 	ptleft=20; ptright=25;
 	break;
       case 3 :
-	h->SetMarkerStyle( 24 );
-	h->SetMarkerSize( 1 );
-	h->SetMarkerColor( kGreen+1 ); h->SetLineColor( kGreen+1 );
-	sysunfold->SetFillColor( kGreen-10 );
-	systot->SetFillColor( kGreen-10 );
 	ptleft=25; ptright=30;
 	break;	
       case 4 :
-	h->SetMarkerStyle( 33 );
-	h->SetMarkerSize( 1.6 );
-	h->SetMarkerColor( kOrange+7 ); h->SetLineColor( kOrange+7 );
-	sysunfold->SetFillColor( kOrange-9 );
-	systot->SetFillColor( kOrange-9 );
 	ptleft=30; ptright=40;
 	break; 
       case 5 :
-	h->SetMarkerStyle( 30 );
-	h->SetMarkerSize( 1.3 );
-	h->SetMarkerColor( kMagenta+1 ); h->SetLineColor( kMagenta+1 );
-	sysunfold->SetFillColor( kMagenta-10 );
-	systot->SetFillColor( kMagenta-10 );
 	ptleft=40; ptright=60;
 	break;
       default :
@@ -286,7 +259,13 @@ int FigPanel(
 	return -1;
 	break; // ROOT can be stupid
       }
+      h->SetMarkerStyle( zgconsts::datamark[histcount] );
+      h->SetMarkerSize( zgconsts::datamarksize[histcount] );
+      h->SetMarkerColor( zgconsts::datacol[histcount] );
+      h->SetLineColor( zgconsts::datacol[histcount] );
       h->SetLineWidth( 2 );
+      sysunfold->SetFillColor( zgconsts::syscol[histcount] );
+      systot->SetFillColor( zgconsts::syscol[histcount]  );
 
       // Hard Probes
       TString name="UnfoldedNS_"; name += int(ptleft+0.01); name += "_"; name += int(ptright+0.01); name += "_minmax";

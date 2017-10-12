@@ -13,42 +13,31 @@
 #include <TSystem.h>
 #include <TLegend.h>
 
+#include"ZgPaperConsts.hxx"
+
+using namespace std;
+
 void SetErrors ( TH1D* const nom, const TH1D* const var, TH1D* const ratio=0 );
 
 int DoUnfolding( 
-		// TString trainname = "Results/Geant_NoEff_NoBg_HT54_WithMisses_WithFakes_TrainedWith_McGeant_NoEff_NoBg_MB.root",
-		// TString ppname    = "Results/ForUnfolding_Pp_HT54_NoEff_NoBgSub.root",
-		//TString trainname = "Results/Geant_NoEff_NoBg_HT54_WithMisses_WithFakes_TrainedWith_McGeant_NoEff_NoBg_MB.root",
-		// TString ppname    = "Results/ForUnfolding_Pp_HT54_NoEff_NoBgSub.root",
-		// TString trainname = "Results/ForClosure_Geant_NoEff_NoBg_HT54_WithMisses_WithFakes_TrainedWith_McGeant_NoEff_NoBg_MB.root",
-		// TString ppname    = "Results/ForClosure_Geant_NoEff_NoBg_HT54_WithMisses_WithFakes_TrainedWith_McGeant_NoEff_NoBg_MB.root",
-		// TString trainname = "Results/Geant_NoEff_NoBg_HT54_WithMisses_WithFakes_TrainedWith_McGeant_NoEff_NoBg_MB.root",
-		// TString ppname    = "Results/Geant_NoEff_NoBg_HT54_WithMisses_WithFakes_TrainedWith_McGeant_NoEff_NoBg_MB.root",
-
-		// TString trainname = "Results/Recut_Geant_NoEff_NoBg_HT54_WithMisses_WithFakes_TrainedWith_Recut_McGeant_NoEff_NoBg_MB.root",
-		// TString ppname    = "Results/ForUnfolding_Recut_Pp_HT54_NoEff_NoBgSub.root",
-
-		// TString trainname = "Results/ReCut_Geant12_NoEff_NoBg_HT54_JP_WithMisses_WithFakes_TrainedWith_ReCut_McGeant12_NoEff_NoBg_MB.root",
-		// TString trainname = "Results/ReCut_Geant12_NoEff_NoBg_HT54_WithMisses_WithFakes_TrainedWith_ReCut_McGeant12_NoEff_NoBg_MB.root",
-		// TString ppname    = "Results/ForUnfolding_ReCut_Pp12_HT54_NoEff_NoBgSub.root",
 		// --- Latest Run 6 --- 
 		// TString trainname = "Results/AEff0_PtSmear0_ATow0_SystGeant_NoEff_NoBg_HT54_WithMisses_WithFakes_TrainedWith_Recut_McGeant_NoEff_NoBg_MB.root",
 		// TString ppname    = "Results/ForUnfolding_Recut_Pp_HT54_NoEff_NoBgSub.root",
 		// --- Use one of these for Run 12: ---
-		// TString trainname = "Results/AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_HT54_JP2_WithMisses_WithFakes_TrainedWith_McGeant12_NoEff_NoBg_all.root",
-		// TString ppname    = "Results/ForUnfolding_ForPaper_Pp12_HT54_JP2_NoEff_NoBgSub.root",
-		// TString trainname = "Results/AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_McGeant12_NoEff_NoBg_all.root",
-		// TString ppname    = "Results/ForUnfolding_ForPaper_Pp12_JP2_NoEff_NoBgSub.root",
+		TString trainname = "Results/AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_McGeant12_NoEff_NoBg_all.root",
+		TString ppname    = "Results/ForUnfolding_ForPaper_Pp12_JP2_NoEff_NoBgSub.root",	
 		// // --- MIP or other hadronic correction cross check ---
 		// TString trainname = "Results/AEff0_PtSmear0_ATow0_SystGeant12_MIP_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_McGeant12_NoEff_NoBg_all.root",
 		// TString ppname    = "Results/ForUnfolding_ForPaper_Pp12_JP2_MIP_NoEff_NoBgSub.root",
-		// --- MIP or other hadronic correction cross check ---
-		TString trainname = "Results/AEff0_PtSmear0_ATow0_SystGeant_MIP_NoEff_NoBg_HT54_WithMisses_WithFakes_TrainedWith_Recut_McGeant_NoEff_NoBg_MB.root",
-		TString ppname    = "Results/ForUnfolding_Recut_Pp_HT54_MIP_NoEff_NoBgSub.root",
+		// // --- Different R ---
+		// TString trainname = "Results/AEff0_PtSmear0_ATow0_R0.6_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_R0.6_McGeant12_NoEff_NoBg_all.root",
+		// TString ppname    = "Results/ForUnfolding_R0.6_ForPaper_Pp12_JP2_NoEff_NoBgSub.root",
+
+
 		const int MaxnBayes2D = 4
 		) {
   
-  int RebinZg=1;  // SHOULD BE DONE EARLIER
+  int RebinZg=2;  // SHOULD BE DONE EARLIER
 
   bool ClosureTest = ( trainname.Contains( "ForClosure" ) || ppname.Contains( "ForClosure" ) );
   if ( ClosureTest && trainname != ppname ){
@@ -129,7 +118,7 @@ int DoUnfolding(
   cout << endl << " Starting 2D Unfolding " <<  endl ;
   TH2D** IncBayesUnfolded = new TH2D*[MaxnBayes2D];
   for ( int nBayes2D=1; nBayes2D<=MaxnBayes2D; ++nBayes2D ){
-    cout << endl << "=== Unfolding trigger distribution with nBayes2D=" << nBayes2D << " ===" << endl;
+    cout << endl << "=== Unfolding distribution with nBayes2D=" << nBayes2D << " ===" << endl;
     RooUnfoldBayes    IncBayesUnfold ( IncPtZgResponse2D, IncTestMeas2D, nBayes2D);
     IncBayesUnfold.SetVerbose(1);
     IncBayesUnfolded[nBayes2D-1] = (TH2D*) IncBayesUnfold.Hreco( RooUnfold::kCovariance ); // RooUnfold::kCovariance seems to be the default
@@ -152,12 +141,12 @@ int DoUnfolding(
 
   gPad->SaveAs( PlotBase + "_Everything.pdf[");
     
-  int rebinpt=2;
+  int rebinpt=1;
   TH1D* Incmeaspt = (TH1D*) IncTestMeas2D->ProjectionX("Incmeaspt");
   Incmeaspt->SetLineColor( kMagenta+2 );
   Incmeaspt->Rebin( rebinpt );
   Incmeaspt->SetTitle("");
-  // Incmeaspt->SetDirectory( gDirectory );
+  Incmeaspt->SetDirectory( gDirectory );
 
   TH1D* IncTrainTruthpt = (TH1D*) IncTrainTruth2D->ProjectionX("IncTrainTruthpt");
   // IncTrainTruthpt->SetLineColor(kPink+7);
@@ -214,6 +203,7 @@ int DoUnfolding(
   for ( int nBayes2D=1; nBayes2D<=MaxnBayes2D; ++nBayes2D){
     TString hname = "Incunfoldpt_"; hname+=nBayes2D;
     TH1D* Incunfoldpt = (TH1D*) IncBayesUnfolded[nBayes2D-1]->ProjectionX(hname);
+    Incunfoldpt->SetDirectory( gDirectory );
 
     Incunfoldpt->SetLineColor(nBayes2D+1);
     Incunfoldpt->Rebin( rebinpt );
@@ -266,18 +256,15 @@ int DoUnfolding(
   TString name;
   TH1D* h;
   
-  double Incbins[] = { 10, 15, 20, 25, 30, 40, 60};
-  int nIncbins  = sizeof(Incbins) / sizeof(Incbins[0])-1;
-
   TH1D* dummy = new TH1D( "dummy","", 20, 0.05, 0.55);
   dummy->SetAxisRange(0, 9, "y");
   
   TH1D* rdummy = new TH1D( "rdummy","", 20, 0.05, 0.55);
   rdummy->SetAxisRange( -.01,0.20, "y");
 	  
-  for ( int i=0 ; i<nIncbins ; ++i ){
-    float ptleft  = Incbins[i];
-    float ptright = Incbins[i+1];
+  for ( int i=0 ; i<zgconsts::nIncbins ; ++i ){
+    float ptleft  = zgconsts::Incbins[i];
+    float ptright = zgconsts::Incbins[i+1];
 
     new TCanvas;
     gPad->SetGridx(0);  gPad->SetGridy(0);

@@ -1,6 +1,9 @@
+#include"ZgPaperConsts.hxx"
+
 int PrepPurePythia(){
 
   TString InName = "Results/Prepped_ForPaper_Pythia8_NoEff_NoBgSub.root";
+  // TString InName = "Results/Prepped_RESHUFFLED_Pythia8_NoEff_NoBgSub.root";
   TString OutName = InName;
   OutName.ReplaceAll("Prepped","CutUp");
 
@@ -23,12 +26,9 @@ int PrepPurePythia(){
   
   // zg
   // --
-  double Incbins[] = { 10, 15, 20, 25, 30, 40, 60};
-  int nIncbins  = sizeof(Incbins) / sizeof(Incbins[0])-1;
-
-  for ( int i=0 ; i<nIncbins ; ++i ){
-    float ptleft  = Incbins[i];
-    float ptright = Incbins[i+1];
+  for ( int i=0 ; i<zgconsts::nIncbins ; ++i ){
+    float ptleft  = zgconsts::Incbins[i];
+    float ptright = zgconsts::Incbins[i+1];
 
     TString name = "p8_Incmeas_"; name += int(ptleft+0.01); name += int(ptright+0.01);
     TH1D* Incmeas =
