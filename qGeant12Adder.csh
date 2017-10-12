@@ -9,8 +9,8 @@
 set ExecPath = `pwd`
 
 #set RMod = ""
-#set RMod = R0.2_
-#set RMod = Pt1_
+set RMod = R0.6_
+
 
 # set inbase  = ReCut_McGeant12_NoEff_NoBg_MB_Cleanpp12Pico
 # set outbase = ReCut_McGeant12_NoEff_NoBg_MB
@@ -30,6 +30,10 @@ set ExecPath = `pwd`
 set inbase  = McGeant12_NoEff_NoBg_all_Cleanpp12Pico
 set outbase = McGeant12_NoEff_NoBg_all
 
+if ( $RMod != "" ) then
+    set inbase=${RMod}$inbase
+    set outbase=${RMod}$outbase
+endif
 
 
 set binjobs=''

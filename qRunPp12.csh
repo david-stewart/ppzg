@@ -52,20 +52,26 @@ setenv R 0.4
 setenv ht -1
 setenv trig ppJP2
 setenv bg 0
-# setenv hadcorr 0.9999999
-# setenv OutBase ForPaper_Pp12_JP2_NoEff_NoBgSub
+setenv hadcorr 0.9999999
+setenv OutBase ForPaper_Pp12_JP2_NoEff_NoBgSub
 
 # setenv hadcorr 0.5
 # setenv OutBase ForPaper_Pp12_JP2_HC50_NoEff_NoBgSub
 
-setenv hadcorr -1
-setenv OutBase ForPaper_Pp12_JP2_MIP_NoEff_NoBgSub
+# setenv hadcorr -1
+# setenv OutBase ForPaper_Pp12_JP2_MIP_NoEff_NoBgSub
 
 # setenv bg 1
 # setenv OutBase Pp_HT54_NoEff_AreaSub
 
 # setenv bg 2
 # setenv OutBase Pp_HT54_NoEff_ConstSubPre
+
+
+if ( $R != 0.4 ) then
+    setenv OutBase R${R}_$OutBase
+endif
+
 
 set submitted=0
 foreach File ( Data/ppJP2Run12/sum*root )

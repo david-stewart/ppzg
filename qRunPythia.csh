@@ -34,11 +34,18 @@ set ResultDir   = Results/Pieces
 
 setenv pcmin 0.2
 
+# setenv R 0.4
+# setenv ht -1
+# setenv trig all
+# setenv bg 0
+# setenv OutBase ForPaper_Pythia8_NoEff_NoBgSub
+# setenv trig all
+
 setenv R 0.4
 setenv ht -1
-setenv trig ppJP2
+setenv trig all
 setenv bg 0
-setenv OutBase ForPaper_Pythia8_NoEff_NoBgSub
+setenv OutBase RESHUFFLED_Pythia8_NoEff_NoBgSub
 setenv trig all
 
 set submitted=0

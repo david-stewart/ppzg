@@ -55,7 +55,7 @@ setenv Nevent -1
 # setenv trig all
 
 setenv pcmin 0.2
-setenv R 0.4
+setenv R 0.6
 setenv bg 0
 setenv chainname JetTreeMc
 setenv intype mcpico
@@ -83,6 +83,9 @@ setenv pjmax 2000
 #set ResultDir   = Results
 set ResultDir   = Results/Pieces
 
+if ( $R != 0.4 ) then
+    setenv OutBase R${R}_$OutBase
+endif
 
 set submitted=0
 foreach File ( Data/AddedEmbedPythiaRun12pp200/Cleanpp12*root )

@@ -72,17 +72,21 @@ setenv trig ppJP2
 # setenv ht 5.4
 # setenv OutBase SystGeant12_NoEff_NoBg_HT54_JP2
 
-# setenv hadcorr 0.99999
-# setenv ht -1
-# setenv OutBase SystGeant12_NoEff_NoBg_JP2
+setenv hadcorr 0.99999
+setenv ht -1
+setenv OutBase SystGeant12_NoEff_NoBg_JP2
 
 # setenv hadcorr 0.5
 # setenv ht -1
 # setenv OutBase SystGeant12_HC50_NoEff_NoBg_JP2
 
-setenv hadcorr -1
-setenv ht -1
-setenv OutBase SystGeant12_MIP_NoEff_NoBg_JP2
+# setenv hadcorr -1
+# setenv ht -1
+# setenv OutBase SystGeant12_MIP_NoEff_NoBg_JP2
+
+if ( $R != 0.4 ) then
+    setenv OutBase R${R}_$OutBase
+endif
 
 set rerunlist = Rerun_${OutBase}.txt
 rm -f $rerunlist

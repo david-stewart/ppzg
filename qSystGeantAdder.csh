@@ -3,16 +3,16 @@
 set ExecPath = `pwd`
 
 set RMod = ""
-#set RMod = R0.2_
+#set RMod = R0.6_
 #set RMod = Pt1_
 
 # set inbase  = ${RMod}SystGeant12_NoEff_NoBg_HT54_JP2
 # set outbase = ${RMod}SystGeant12_NoEff_NoBg_HT54_JP2
 
-# set inbase  = ${RMod}SystGeant12_NoEff_NoBg_JP2
-# set outbase = ${RMod}SystGeant12_NoEff_NoBg_JP2
-# set fileroot = Cleanpp12Pico
-# set datapath = Data/AddedEmbedPythiaRun12pp200
+set inbase  = ${RMod}SystGeant12_NoEff_NoBg_JP2
+set outbase = ${RMod}SystGeant12_NoEff_NoBg_JP2
+set fileroot = Cleanpp12Pico
+set datapath = Data/AddedEmbedPythiaRun12pp200
 
 # set inbase  = ${RMod}SystGeant12_HC50_NoEff_NoBg_JP2
 # set outbase = ${RMod}SystGeant12_HC50_NoEff_NoBg_JP2
@@ -29,10 +29,10 @@ set RMod = ""
 # set fileroot = picoDst
 # set datapath = Data/AddedGeantPythia
 
-set inbase  = ${RMod}SystGeant_MIP_NoEff_NoBg_HT54
-set outbase = ${RMod}SystGeant_MIP_NoEff_NoBg_HT54
-set fileroot = picoDst
-set datapath = Data/AddedGeantPythia
+# set inbase  = ${RMod}SystGeant_MIP_NoEff_NoBg_HT54
+# set outbase = ${RMod}SystGeant_MIP_NoEff_NoBg_HT54
+# set fileroot = picoDst
+# set datapath = Data/AddedGeantPythia
 
 # foreach Tow ( 0 -1 1 )
 # 	foreach Smear ( 0 1 )
