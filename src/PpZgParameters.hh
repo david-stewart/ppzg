@@ -111,8 +111,8 @@ public :
   double ManualHtCut=0.0;        ///< necessary for some embedding picos. Should always equal MinEventEtCut
 
 
-  BGTYPE SubtractBg=AREA;
-  BGTYPE EmbSubtractBg=AREA;
+  BGTYPE SubtractBg=NONE;
+  BGTYPE EmbSubtractBg=NONE;
 
   // BGTYPE SubtractBg=NONE;
   // BGTYPE EmbSubtractBg=NONE;
@@ -121,13 +121,12 @@ public :
   // Switch for fixing. Should be turned on by default for Geant files, off otherwise.
   bool UseGeantNumbering=false;
 
-  // MC example
-  // ----------
-  TString InputName = "Data/AlternateRhicPythia/LargeEtaPythiaOnly_1_ptHat=25_35.root"; ///< Input name
-  INTYPE intype = MCTREE;             ///< Input type (can be a pico dst, a result tree, an MC tree)
-  TString ChainName = "tree";         ///< Name of the input chain
-  TString TriggerName = "All";        ///< Trigger type (All, MB, HT, pp, ppHT, ppJP)
-
+  // // MC example
+  // // ----------
+  // TString InputName = "Data/AlternateRhicPythia/LargeEtaPythiaOnly_1_ptHat=25_35.root"; ///< Input name
+  // INTYPE intype = MCTREE;             ///< Input type (can be a pico dst, a result tree, an MC tree)
+  // TString ChainName = "tree";         ///< Name of the input chain
+  // TString TriggerName = "All";        ///< Trigger type (All, MB, HT, pp, ppHT, ppJP)
   
   // // MC example
   // // ----------
@@ -150,9 +149,16 @@ public :
   // TString ChainName = "JetTree";      ///< Name of the input chain
   // TString TriggerName = "All";        ///< Trigger type (All, MB, HT, pp, ppHT, ppJP)
 
+  // GEANT12 example
+  // ---------------
+  TString InputName = "Data/AddedEmbedPythiaRun12pp200/Cleanpp12Pico_pt25_35_g0.root"; ///< Input name
+  INTYPE intype = INPICO;             ///< Input type (can be a pico dst, a result tree, an MC tree)
+  TString ChainName = "JetTree";      ///< Name of the input chain
+  TString TriggerName = "ppJP2";        ///< Trigger type (All, MB, HT, pp, ppHT, ppJP2, ppJP(careful!))
+
   // // real data pico example
   // // ----------------------
-  // TString InputName = "Data/ppHT/*.root"; ///< Input name
+  // TString InputName = "Data/ppHT/picoDst_7156028_32294A2A403C1B82D143E9E183B8E3B3*root"; ///< Input name
   // INTYPE intype = INPICO;                 ///< Input type (can be a pico dst, a result tree, an MC tree)
   // TString ChainName = "JetTree";          ///< Name of the input chain
   // TString TriggerName = "ppHT";           ///< Trigger type (All, MB, HT, pp, ppHT, ppJP)
@@ -162,7 +168,7 @@ public :
   // TString InputName = "Data/ppJP2Run12/sum8.root"; ///< Input name
   // INTYPE intype = INPICO;                 ///< Input type (can be a pico dst, a result tree, an MC tree)
   // TString ChainName = "JetTree";          ///< Name of the input chain
-  // TString TriggerName = "ppJP";           ///< Trigger type (All, MB, HT, pp, ppHT, ppJP)
+  // TString TriggerName = "ppJP2";           ///< Trigger type (All, MB, HT, pp, ppHT, ppJP)
 
   // // real AuAu data pico example
   // // -------------------
@@ -195,7 +201,7 @@ public :
   int nMix=1;                   ///< How many events to mix
 
   // Only putting it here so that it can be initialized in the analysis class and then used
-  TString OutFileName = "Results/TmpResult.root";     ///< Output file
+  TString OutFileName = "TmpResult.root";     ///< Output file
 
 
 };
