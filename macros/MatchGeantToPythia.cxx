@@ -67,22 +67,18 @@ public:
 typedef pair<RootGroomingResultStruct,RootGroomingResultStruct> MatchedRootGroomingResultStruct;
 
 int MatchGeantToPythia (
-			// TString PpLevelFile = "Results/Geant_NoEff_NoBg_HT54_25_35.root",
-			// TString McLevelFile = "Results/McGeant_NoEff_NoBg_MB_25_35.root" // Reference (particle level) jets
-			// TString PpLevelFile = "Results/Recut_Geant_NoEff_NoBg_HT54.root",
-			// TString McLevelFile = "Results/Recut_McGeant_NoEff_NoBg_MB.root" // Reference (particle level) jets
-			// TString PpLevelFile = "Results/ReCut_Geant12_NoEff_NoBg_HT54_JP.root",
-			// TString McLevelFile = "Results/ReCut_McGeant12_NoEff_NoBg_MB.root" // Reference (particle level) jets
 			// --- Latest Run 6 --- 
 			// TString PpLevelFile = "Results/AEff0_PtSmear0_ATow0_SystGeant_NoEff_NoBg_HT54.root",
 			// TString McLevelFile = "Results/Recut_McGeant_NoEff_NoBg_MB.root" // Reference (particle level) jets
-			// --- Use one of these for Run 12: ---
-			// TString PpLevelFile = "Results/AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_HT54_JP2.root",
-			// TString PpLevelFile = "Results/AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_JP2.root",
-			// TString McLevelFile = "Results/McGeant12_NoEff_NoBg_all.root" // Reference (particle level) jets
-			// --- MIP or other hadronic correction cross check ---
-			TString PpLevelFile = "Results/AEff0_PtSmear0_ATow0_SystGeant12_MIP_NoEff_NoBg_JP2.root",
+			// --- Default for Run 12: ---
+			TString PpLevelFile = "Results/AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_JP2.root",
 			TString McLevelFile = "Results/McGeant12_NoEff_NoBg_all.root" // Reference (particle level) jets
+			// // --- MIP or other hadronic correction cross check ---
+			// TString PpLevelFile = "Results/AEff0_PtSmear0_ATow0_SystGeant12_MIP_NoEff_NoBg_JP2.root",
+			// TString McLevelFile = "Results/McGeant12_NoEff_NoBg_all.root" // Reference (particle level) jets
+			// // // --- Different R --- 
+			// TString PpLevelFile = "Results/AEff0_PtSmear0_ATow0_R0.6_SystGeant12_NoEff_NoBg_JP2.root",
+			// TString McLevelFile = "Results/R0.6_McGeant12_NoEff_NoBg_all.root" // Reference (particle level) jets
 			) {
   gStyle->SetOptStat(0);
   gStyle->SetTitleX(0.1f);
@@ -229,6 +225,12 @@ int MatchGeantToPythia (
   double ppzg[1000];
   PpChain->SetBranchAddress("zg", ppzg );
 
+  // Load different pt shape for systematics
+  // ---------------------------------------
+  TFile* fPtWeights = new TFile( "TsallisScaler.root","READ");
+  TH1D* hPtWeights = (TH1D*) fPtWeights->Get("TsallisScaler");
+  hPtWeights->SetTitle("hPtWeights");
+    
   // Output and histograms
   // ----------------------
   TFile* fout = new TFile( OutFileName, "RECREATE");
@@ -261,23 +263,32 @@ int MatchGeantToPythia (
   float ptmaxMeas =  60;
 
   RooUnfoldResponse IncPtResponse    ( nPtBinsMeas, ptminMeas, ptmaxMeas, nPtBinsTrue, ptminTrue, ptmaxTrue );
-  RooUnfoldResponse TrigPtResponse   ( nPtBinsMeas, ptminMeas, ptmaxMeas, nPtBinsTrue, ptminTrue, ptmaxTrue );
-  RooUnfoldResponse RecoilPtResponse ( nPtBinsMeas, ptminMeas, ptmaxMeas, nPtBinsTrue, ptminTrue, ptmaxTrue );
+
+  RooUnfoldResponse VisualIncPtResponse    ( 10*nPtBinsMeas, ptminMeas, ptmaxMeas, 10*nPtBinsTrue, ptminTrue, ptmaxTrue );
+  float ptminforvisualzg = 20;
+  float ptmaxforvisualzg = 30;
+  RooUnfoldResponse VisualIncZgResponse    ( 10*nZgBinsMeas, zgminMeas, zgmaxMeas, 10*nZgBinsTrue, zgminTrue, zgmaxTrue );
 
   // 2D unfolding:
   TH2D* hTrue= new TH2D ("hTrue", "Truth", nPtBinsTrue, ptminTrue, ptmaxTrue, nZgBinsTrue, zgminTrue, zgmaxTrue);
   TH2D* hMeas= new TH2D ("hMeas", "Measured", nPtBinsMeas, ptminMeas, ptmaxMeas, nZgBinsMeas, zgminMeas, zgmaxMeas);
 
-  TH2D* hTruthOfZero= new TH2D ("hTruthOfZero", "hTruthOfZero", nPtBinsTrue, ptminTrue, ptmaxTrue, nZgBinsTrue, zgminTrue, zgmaxTrue);
-
   RooUnfoldResponse IncPtZgResponse2D;
   IncPtZgResponse2D.Setup (hMeas, hTrue );
 
-  // RooUnfoldResponse TrigPtZgResponse2D;
-  // TrigPtZgResponse2D.Setup (hMeas, hTrue );
 
-  // RooUnfoldResponse RecoilPtZgResponse2D;
-  // RecoilPtZgResponse2D.Setup (hMeas, hTrue );
+  // Various responses with truth shapes reweighted to represent a different prior
+  RooUnfoldResponse IncBentPtResponse    ( nPtBinsMeas, ptminMeas, ptmaxMeas, nPtBinsTrue, ptminTrue, ptmaxTrue );
+
+  RooUnfoldResponse IncBentPtZgResponse2D;
+  IncBentPtZgResponse2D.Setup (hMeas, hTrue );
+
+  RooUnfoldResponse IncPtBentZgResponse2D;
+  IncPtBentZgResponse2D.Setup (hMeas, hTrue );
+  
+  RooUnfoldResponse IncBentPtBentZgResponse2D;
+  IncBentPtBentZgResponse2D.Setup (hMeas, hTrue );
+
 
   TH2D* IncTruth2D = new TH2D( "IncTruth2D", "TRAIN z_{g}^{lead} vs. p_{T}^{lead}, Pythia6;p_{T}^{lead};z_{g}^{lead}", nPtBinsTrue, ptminTrue, ptmaxTrue, nZgBinsTrue, zgminTrue, zgmaxTrue);
   TH2D* IncMeas2D  = new TH2D( "IncMeas2D", "TRAIN z_{g}^{lead} vs. p_{T}^{lead}, Pythia6 #oplus GEANT;p_{T}^{lead};z_{g}^{lead}", nPtBinsMeas, ptminMeas, ptmaxMeas, nZgBinsMeas, zgminMeas, zgmaxMeas);
@@ -376,6 +387,12 @@ int MatchGeantToPythia (
 	  for ( vector<RootGroomingResultStruct>::iterator mcit = mcresult.begin(); mcit != mcresult.end(); ++mcit ){
 	    IncPtResponse.Miss( mcit->orig.Pt(), mcweight );
 	    IncPtZgResponse2D.Miss2D( mcit->orig.Pt(), mcit->zg, mcweight );
+
+	    VisualIncPtResponse.Miss ( mcit->orig.Pt(), mcweight );
+	    if ( mcit->orig.Pt() > ptminforvisualzg && mcit->orig.Pt() < ptmaxforvisualzg ){
+	      VisualIncZgResponse.Miss ( mcit->zg, mcweight );
+	    }
+	    
 	  }
 	}
 	// Skip this event
@@ -464,10 +481,18 @@ int MatchGeantToPythia (
       if ( !PrepClosure || mcEvi%2 == 0){
 	IncPtZgResponse2D.Fill( res->second.orig.Pt(), res->second.zg, res->first.orig.Pt(), res->first.zg, mcweight );
 	IncPtResponse.Fill( res->second.orig.Pt(), res->first.orig.Pt(), mcweight );
-	if ( res->second.zg <0.1 ) {
-	  // cout << res->first.zg << "  " << res->first.orig.Pt() << endl;
-	  hTruthOfZero->Fill(res->first.orig.Pt(), res->first.zg, mcweight );
+
+	VisualIncPtResponse.Fill( res->second.orig.Pt(), res->first.orig.Pt(), mcweight );
+	if ( res->second.orig.Pt() > ptminforvisualzg && res->second.orig.Pt() < ptmaxforvisualzg ){
+	  VisualIncZgResponse.Fill ( res->second.zg, res->first.zg, mcweight );
 	}
+
+	float truept = res->first.orig.Pt();
+	float ptweight = hPtWeights->GetBinContent( hPtWeights->FindBin(truept) );
+	IncBentPtResponse.Fill ( res->second.orig.Pt(), res->first.orig.Pt(), mcweight*ptweight );
+	IncBentPtZgResponse2D.Fill( res->second.orig.Pt(), res->second.zg, res->first.orig.Pt(), res->first.zg, mcweight*ptweight );
+
+
       }
     }
     
@@ -477,6 +502,16 @@ int MatchGeantToPythia (
 	for ( vector<RootGroomingResultStruct>::iterator mcit = mcresult.begin(); mcit != mcresult.end(); ++mcit ){
 	  IncPtResponse.Miss( mcit->orig.Pt(), mcweight );
 	  IncPtZgResponse2D.Miss2D( mcit->orig.Pt(), mcit->zg, mcweight );
+	  
+	  VisualIncPtResponse.Miss( mcit->orig.Pt(), mcweight );
+	  if ( mcit->orig.Pt() > ptminforvisualzg && mcit->orig.Pt() < ptmaxforvisualzg ){
+	    VisualIncZgResponse.Miss( mcit->zg, mcweight );
+	  }
+	  
+	  float truept = mcit->orig.Pt();
+	  float ptweight = hPtWeights->GetBinContent( hPtWeights->FindBin(truept) );
+	  IncBentPtResponse.Miss( mcit->orig.Pt(), mcweight*ptweight );
+	  IncBentPtZgResponse2D.Miss2D( mcit->orig.Pt(), mcit->zg, mcweight*ptweight );
 	}
       }
     }
@@ -486,6 +521,10 @@ int MatchGeantToPythia (
 	for ( vector<RootGroomingResultStruct>::iterator ppit = ppresult.begin(); ppit != ppresult.end(); ++ppit ){
 	  IncPtResponse.Fake( ppit->orig.Pt(), ppweight );
 	  IncPtZgResponse2D.Fake2D( ppit->orig.Pt(), ppit->zg, ppweight );
+
+	  if ( ppit->orig.Pt() > ptminforvisualzg && ppit->orig.Pt() < ptmaxforvisualzg ){
+	    VisualIncZgResponse.Fake( ppit->zg, ppweight );
+	  }		
 	}  
       }
     }
@@ -759,15 +798,17 @@ int MatchGeantToPythia (
   IncPtResponse.Write();
   IncPtZgResponse2D.Write();
 
-  // TrigPtResponse.SetName("TrigPtResponse");
-  // TrigPtZgResponse2D.SetName("TrigPtZgResponse2D");
-  // TrigPtResponse.Write();
-  // TrigPtZgResponse2D.Write();
+  IncBentPtResponse.SetName("IncBentPtResponse");
+  IncBentPtResponse.Write();
 
-  // RecoilPtResponse.SetName("RecoilPtResponse");
-  // RecoilPtZgResponse2D.SetName("RecoilPtZgResponse2D");
-  // RecoilPtResponse.Write();
-  // RecoilPtZgResponse2D.Write();
+  IncBentPtZgResponse2D.SetName("IncBentPtZgResponse2D");
+  IncBentPtZgResponse2D.Write();
+
+  VisualIncPtResponse.SetName("VisualIncPtResponse");
+  VisualIncPtResponse.Write();
+
+  VisualIncZgResponse.SetName("VisualIncZgResponse");
+  VisualIncZgResponse.Write();
 
   cout << " Wrote to" << endl << OutFileName << endl;
 
