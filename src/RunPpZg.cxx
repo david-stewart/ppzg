@@ -256,6 +256,8 @@ int main( int argc, const char** argv ){
   ResultTree->Branch("zg",       zg, "zg[njets]/D" );
   double delta_R[1000];
   ResultTree->Branch("delta_R",  delta_R, "delta_R[njets]/D" );
+  double nef[1000];
+  ResultTree->Branch("nef",  nef, "nef[njets]/D" );
   double mu[1000];
   ResultTree->Branch("mu",       mu, "mu[njets]/D" );
   double rho=-1;
@@ -426,7 +428,6 @@ int main( int argc, const char** argv ){
       njets=GroomingResult.size();
       int ijet=0;
       for ( auto& gr : GroomingResult ){	
-	zg[ijet]=gr.zg;
 
 	TStarJetVector sv = TStarJetVector( MakeTLorentzVector( gr.orig) );
 	sv.SetCharge( gr.orig.user_info<JetAnalysisUserInfo>().GetQuarkCharge() / 3 );
@@ -445,9 +446,10 @@ int main( int argc, const char** argv ){
 	
 	new ( GroomedJets[ijet] )        TStarJetVectorJet ( TStarJetVector( MakeTLorentzVector( gr.groomed) ) );
 	zg[ijet] = gr.zg;
-		  
-	// cout << gr.orig.user_info<JetAnalysisUserInfo>().GetQuarkCharge() << endl;
 
+	delta_R[ijet]=gr.groomed.structure_of<contrib::SoftDrop>().delta_R();
+
+	nef[ijet] = gr.orig.user_info<JetAnalysisUserInfo>().GetNumber() ;
 
 	if ( gr.orig.pt()>200 ){ // DEBUG
 	  vector<PseudoJet> particles = sorted_by_pt(ppzg->GetConstituents());
