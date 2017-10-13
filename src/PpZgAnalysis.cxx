@@ -787,17 +787,17 @@ EVENTRESULT PpZgAnalysis::RunEvent (){
     }
     
     // Run SoftDrop and examine the output
-    // PseudoJet sd_jet = sd( CurrentJet );
+    PseudoJet sd_jet = sd( CurrentJet );
 
-    // DEBUG
-    vector<PseudoJet> temp=reshuffle (CurrentJet.constituents());
-    // JetDefinition TempJetDef ( pars.LargeJetAlgorithm, 1.0 );
+    // // DEBUG
+    // vector<PseudoJet> temp=reshuffle (CurrentJet.constituents());
+    // // JetDefinition TempJetDef ( pars.LargeJetAlgorithm, 1.0 );
+    // // JetAnalyzer TempJA (temp, TempJetDef);
+    // JetDefinition TempJetDef    = JetDefinition( fastjet::cambridge_algorithm, pars.R );
     // JetAnalyzer TempJA (temp, TempJetDef);
-    JetDefinition TempJetDef    = JetDefinition( fastjet::cambridge_algorithm, pars.R );
-    JetAnalyzer TempJA (temp, TempJetDef);
-    PseudoJet newjet = sorted_by_pt( select_jet ( JA.inclusive_jets() ) ).at(0);    
-    PseudoJet sd_jet = sd( newjet );
-    // END DEBUG
+    // PseudoJet newjet = sorted_by_pt( select_jet ( JA.inclusive_jets() ) ).at(0);    
+    // PseudoJet sd_jet = sd( newjet );
+    // // END DEBUG
 
     // cout << " Grooming Result: " << CurrentJet.pt() << "  --> " << sd_jet.pt() << endl << endl;
     if ( sd_jet == 0){
