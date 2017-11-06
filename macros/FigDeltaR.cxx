@@ -14,6 +14,7 @@ void SetupHisto ( TH1* hFrame,
 int FigDeltaR( ){
   
   TString ppfile = "Results/ForUnfolding_ForPaper_Pp12_JP2_NoEff_NoBgSub.root";
+  // TString ppfile = "Results/AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_JP2.root";
   TFile* fin = new TFile( ppfile, "READ");
 
   TString plotpath="./figs/";
@@ -133,8 +134,11 @@ int FigDeltaR( ){
 		 xtickbase, ndivx,
 		 yloffset, ytoffset,
 		 ytickbase, ndivy );
-    if ( i==0 ) h->Draw("9hist");
-    else h->Draw("9histsame");
+    if ( i==0 ) h->Draw("9");
+    else h->Draw("9same");
+    h->Draw("9histsame");
+    // if ( i==0 ) h->Draw("9hist");
+    // else h->Draw("9histsame");
   }
 
   pphistos.At(0)->Draw("9histsame");

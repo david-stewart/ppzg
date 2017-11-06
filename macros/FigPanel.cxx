@@ -19,9 +19,12 @@ int FigPanel(
 	     // --- Latest Run 6 ---
 	     // TString inname="Results/TotalzgSystematics_Recut_Pp_HT54_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_SystGeant_NoEff_NoBg_HT54_WithMisses_WithFakes_TrainedWith_Recut_McGeant_NoEff_NoBg_MB.root"
 	     // --- Use one of these ---
-	     TString inname="Results/TotalzgSystematics_ForPaper_Pp12_JP2_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes.root"
-	     //// Not this one really TString inname="Results/TotalzgSystematics_ForPaper_Pp12_HT54_JP2_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_HT54_JP2_WithMisses_WithFakes.root"
+	     //TString inname="Results/TotalzgSystematics_ForPaper_Pp12_JP2_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes.root"
+	     // Not this one really TString inname="Results/TotalzgSystematics_ForPaper_Pp12_HT54_JP2_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_HT54_JP2_WithMisses_WithFakes.root"
 
+	     // --- Different R
+	     // TString inname="Results/Unfolded_ForUnfolding_R0.2_ForPaper_Pp12_JP2_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_R0.2_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_R0.2_McGeant12_NoEff_NoBg_all.root"
+	     TString inname="Results/Unfolded_ForUnfolding_R0.6_ForPaper_Pp12_JP2_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_R0.6_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_R0.6_McGeant12_NoEff_NoBg_all.root"
 	     // Unrebinned versions
 	     // --- Latest Run 6 ---
 	     // TString inname="Results/TotalzgSystematics_NoRebin_Recut_Pp_HT54_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_SystGeant_NoEff_NoBg_HT54_WithMisses_WithFakes_TrainedWith_Recut_McGeant_NoEff_NoBg_MB.root"
@@ -73,6 +76,8 @@ int FigPanel(
   SysRest.Add( infile->Get("Incunfold_2530_2_minmax") );
   SysRest.Add( infile->Get("Incunfold_3040_2_minmax") );
   SysRest.Add( infile->Get("Incunfold_4060_2_minmax") );
+
+  bool SuppresSystematics = ( SysRest.At(0)==0 );
 
   // Number of PADS
   // const Int_t Nx = 2;
@@ -171,14 +176,18 @@ int FigPanel(
       C->cd(0);
       pad[i][j]->cd();
       TH1D* h = (TH1D*) histos.At(histcount);
-      TH1D* sysunfold = (TH1D*) SysUnfold.At(histcount);
-      TH1D* sysrest = (TH1D*) SysRest.At(histcount);
-
-      TH1D* systot = sysrest->Clone( TString("tot")+sysrest->GetName() );
-      for (int ii=1; ii<=systot->GetNbinsX() ; ++ii ){
-	systot->SetBinError (ii, sqrt( pow( sysunfold->GetBinError(ii), 2) + pow( sysrest->GetBinError(ii), 2) ));
+      TH1D* sysunfold;
+      TH1D* sysrest;
+      TH1D* systot;
+      if ( !SuppresSystematics ){
+	sysunfold = (TH1D*) SysUnfold.At(histcount);
+        sysrest = (TH1D*) SysRest.At(histcount);
+	systot = sysrest->Clone( TString("tot")+sysrest->GetName() );
+	for (int ii=1; ii<=systot->GetNbinsX() ; ++ii ){
+	  systot->SetBinError (ii, sqrt( pow( sysunfold->GetBinError(ii), 2) + pow( sysrest->GetBinError(ii), 2) ));
+	}
       }
-      
+	
       char hname[16];
       sprintf(hname,"dummy_%i_%i",i,j);
 
@@ -211,18 +220,20 @@ int FigPanel(
 
       h->SetAxisRange(0.1 + 0.001, 0.5 - 0.001);
 	    
-      systot->SetAxisRange(0.1 + 0.001, 0.5 - 0.001);
-      systot->SetMarkerStyle(20);      systot->SetMarkerSize(0);      systot->SetLineWidth( 0 );
-      systot->SetFillStyle(1001);    
-
-      sysunfold->SetAxisRange(0.1 + 0.001, 0.5 - 0.001);
-      sysunfold->SetMarkerStyle(20);      sysunfold->SetMarkerSize(0);      sysunfold->SetLineWidth( 0 );
-      sysunfold->SetFillStyle(1001);    
-
-      sysrest->SetAxisRange(0.1 + 0.001, 0.5 - 0.001);
-      sysrest->SetMarkerStyle(20);      sysrest->SetMarkerSize(0);      sysrest->SetLineWidth( 0 );
-      sysrest->SetFillStyle(3001);
-      sysrest->SetFillColor( kGray+2 );
+      if ( !SuppresSystematics){
+	systot->SetAxisRange(0.1 + 0.001, 0.5 - 0.001);
+	systot->SetMarkerStyle(20);      systot->SetMarkerSize(0);      systot->SetLineWidth( 0 );
+	systot->SetFillStyle(1001);    
+	
+	sysunfold->SetAxisRange(0.1 + 0.001, 0.5 - 0.001);
+	sysunfold->SetMarkerStyle(20);      sysunfold->SetMarkerSize(0);      sysunfold->SetLineWidth( 0 );
+	sysunfold->SetFillStyle(1001);    
+	
+	sysrest->SetAxisRange(0.1 + 0.001, 0.5 - 0.001);
+	sysrest->SetMarkerStyle(20);      sysrest->SetMarkerSize(0);      sysrest->SetLineWidth( 0 );
+	sysrest->SetFillStyle(3001);
+	sysrest->SetFillColor( kGray+2 );
+      }
 
       float ptleft=0;
       float ptright=0;
@@ -264,8 +275,10 @@ int FigPanel(
       h->SetMarkerColor( zgconsts::datacol[histcount] );
       h->SetLineColor( zgconsts::datacol[histcount] );
       h->SetLineWidth( 2 );
-      sysunfold->SetFillColor( zgconsts::syscol[histcount] );
-      systot->SetFillColor( zgconsts::syscol[histcount]  );
+      if ( !SuppresSystematics){
+	sysunfold->SetFillColor( zgconsts::syscol[histcount] );
+	systot->SetFillColor( zgconsts::syscol[histcount]  );
+      }
 
       // Hard Probes
       TString name="UnfoldedNS_"; name += int(ptleft+0.01); name += "_"; name += int(ptright+0.01); name += "_minmax";
@@ -286,10 +299,12 @@ int FigPanel(
       } 
       
       
-      // sysunfold->Draw("9e2same");
-      // sysrest->Draw("9e2same");
-      // h->Draw("9E0X0same");
-      systot->Draw("9e2same");
+      if ( !SuppresSystematics){
+	// sysunfold->Draw("9e2same");
+	// sysrest->Draw("9e2same");
+	// h->Draw("9E0X0same");
+	systot->Draw("9e2same");
+      }
       h->Draw("9same");
       s="p_{T}="; s+=int(ptleft); s+="-"; s+=int(ptright); s+=" GeV/c";
       leg->AddEntry(h->GetName(), s,"lp");

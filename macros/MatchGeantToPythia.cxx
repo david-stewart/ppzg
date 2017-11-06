@@ -309,6 +309,16 @@ int MatchGeantToPythia (
   // TH2D* McPpTriggerZg10plus = new TH2D( "McPpTriggerZg10plus",";z_{g}^{Part};z_{g}^{Det}", nZgBinsTrue, zgminTrue, zgmaxTrue, nZgBinsMeas, zgminMeas, zgmaxMeas );
   // TH3D* McPpTriggerZg3d = new TH3D( "McPpTriggerZg3d",";z_{g}^{Part};z_{g}^{Det};p_{T}^{truth}", nZgBinsTrue, zgminTrue, zgmaxTrue, nZgBinsMeas, zgminMeas, zgmaxMeas, 12, 0, 60 );
 
+  TH2D* DeltaZgvsPt = new TH2D( "DeltaZgvsPt", "DeltaZg vs. p_{T}, Pythia6", nPtBinsTrue, ptminTrue, ptmaxTrue, 75*3, -0.5, 0.5);
+
+  int nDPTGBinsMeas = nPtBins;
+  float dptgminMeas = -ptmax;
+  // float dptgmaxMeas = ptmax;
+  float dptgmaxMeas = 0;
+  
+  int nRPTGBinsMeas = 100;
+  float rptgminMeas = 0 + 0.5/nRPTGBinsMeas;
+  float rptgmaxMeas = 1 + 0.5/nRPTGBinsMeas;
   // ------------------------
   // Loop over particle level
   // ------------------------
@@ -492,6 +502,8 @@ int MatchGeantToPythia (
 	IncBentPtResponse.Fill ( res->second.orig.Pt(), res->first.orig.Pt(), mcweight*ptweight );
 	IncBentPtZgResponse2D.Fill( res->second.orig.Pt(), res->second.zg, res->first.orig.Pt(), res->first.zg, mcweight*ptweight );
 
+	DeltaZgvsPt->Fill ( truept,  res->second.zg-res->first.zg, mcweight);
+	  
 
       }
     }

@@ -40,7 +40,19 @@
 
 using namespace std;
 
-int PrepUnfolding ( ) {
+int PrepUnfolding (   // Input
+		   // -----
+		   // TString PpLevelFile = "Results/Recut_Pp_HT54_MIP_NoEff_NoBgSub.root" // pp-like events
+		   // --- Use this for Run 12: ---
+		   TString PpLevelFile = "Results/ForPaper_Pp12_JP2_NoEff_NoBgSub.root" // pp-like events
+		   // --- MIP or other hadronic correction cross check ---
+		   // TString PpLevelFile = "Results/ForPaper_Pp12_JP2_MIP_NoEff_NoBgSub.root" // pp-like events
+		   // --- Pythia8 ---
+		   // TString PpLevelFile = "Results/ForPaper_Pythia8_NoEff_NoBgSub.root"
+		   // TEST
+		   // TString PpLevelFile = "Results/RESHUFFLED_Pythia8_NoEff_NoBgSub.root"
+		   // TString PpLevelFile = "Results/R0.6_ForPaper_Pp12_JP2_NoEff_NoBgSub.root"
+  		      ) {
   gStyle->SetOptStat(0);
   gStyle->SetTitleX(0.1f);
   gStyle->SetTitleW(0.8f);
@@ -53,18 +65,6 @@ int PrepUnfolding ( ) {
   float EtaCut = 1.0-RCut;
 
     
-  // Input
-  // -----
-  // TString PpLevelFile = "Results/Recut_Pp_HT54_MIP_NoEff_NoBgSub.root"; // pp-like events
-  // --- Use this for Run 12: ---
-  TString PpLevelFile = "Results/ForPaper_Pp12_JP2_NoEff_NoBgSub.root"; // pp-like events
-  // --- MIP or other hadronic correction cross check ---
-  // TString PpLevelFile = "Results/ForPaper_Pp12_JP2_MIP_NoEff_NoBgSub.root"; // pp-like events
-  // --- Pythia8 ---
-  // TString PpLevelFile = "Results/ForPaper_Pythia8_NoEff_NoBgSub.root";
-  // TEST
-  // TString PpLevelFile = "Results/RESHUFFLED_Pythia8_NoEff_NoBgSub.root";
-  // TString PpLevelFile = "Results/R0.6_ForPaper_Pp12_JP2_NoEff_NoBgSub.root";
   
 
   // Output
@@ -154,6 +154,7 @@ int PrepUnfolding ( ) {
   float drminMeas = 0;
   float drmaxMeas = 0.6;
 
+
   // Only need one of these
   TH2D* IncMeas2D  = new TH2D( "IncMeas2D", "Measured z_{g} vs. p_{T};p_{T};z_{g}", nPtBinsMeas, ptminMeas, ptmaxMeas, nZgBinsMeas, zgminMeas, zgmaxMeas);
   TH2D* IncTestMeas2D  = new TH2D( "IncTestMeas2D", "TEST Measured z_{g} vs. p_{T};p_{T};z_{g}", nPtBinsMeas, ptminMeas, ptmaxMeas, nZgBinsMeas, zgminMeas, zgmaxMeas);
@@ -165,7 +166,19 @@ int PrepUnfolding ( ) {
   // TH2D* RecoilTestMeas2D  = new TH2D( "RecoilTestMeas2D", "TEST z_{g}^{lead} vs. p_{T}^{lead}, Pythia in MC", nPtBinsMeas, ptminMeas, ptmaxMeas, nZgBinsMeas, zgminMeas, zgmaxMeas);
 
   // For further studies
-  TH2D* DeltaR2D  = new TH2D( "DeltaR2D", "Measured #Delta R vs. p_{T};p_{T};z_{g}", nPtBinsMeas, ptminMeas, ptmaxMeas, nDRBinsMeas, drminMeas, drmaxMeas);
+  TH2D* DeltaR2D  = new TH2D( "DeltaR2D", "Measured #Delta R vs. p_{T};p_{T};#Deltaz_{g}", nPtBinsMeas, ptminMeas, ptmaxMeas, nDRBinsMeas, drminMeas, drmaxMeas);
+
+  int nDPTGBinsMeas = nPtBins;
+  float dptgminMeas = -ptmax;
+  // float dptgmaxMeas = ptmax;
+  float dptgmaxMeas = 0;
+  
+  int nRPTGBinsMeas = 100;
+  float rptgminMeas = 0 + 0.5/nRPTGBinsMeas;
+  float rptgmaxMeas = 1 + 0.5/nRPTGBinsMeas;
+
+  TH2D* DeltaPtG  = new TH2D( "DeltaPtG", "p_{T,g} - p_{T,Det} vs. p_{T}^{Det};p_{T,Det};#Deltap_{T,g}", nPtBinsMeas, ptminMeas, ptmaxMeas, nDPTGBinsMeas, dptgminMeas, dptgmaxMeas);
+  TH2D* RatioPtG  = new TH2D( "RatioPtG", "p_{T,g} / p_{T,Det} vs. p_{T}^{Det};p_{T,Det};p_{T,g}/p_{T}^{Det}", nPtBinsMeas, ptminMeas, ptmaxMeas, nRPTGBinsMeas, rptgminMeas, rptgmaxMeas);
 
   // For Pythia
   TH2D* PythiaTruth2D=0;
@@ -179,6 +192,7 @@ int PrepUnfolding ( ) {
   cout << "Loop over measured data" << endl;
   cout << "------------------------" << endl;
 
+  // for ( Long64_t ppEvi = 0; ppEvi< 100000 ; ++ppEvi ){
   for ( Long64_t ppEvi = 0; ppEvi< PpChain->GetEntries() ; ++ppEvi ){
     if ( !(ppEvi%10000) ) cout << "Working on " << ppEvi << " / " << PpChain->GetEntries() << endl;
 
@@ -197,7 +211,9 @@ int PrepUnfolding ( ) {
 	// DEBUG!
 	// if ( nef[j] >0.7 )
 	DeltaR2D->Fill( ppjet->Pt(), delta_R[j], ppweight );
-	
+	DeltaPtG->Fill( ppjet->Pt(), ppgjet->Pt() - ppjet->Pt(), ppweight );
+	RatioPtG->Fill( ppjet->Pt(), ppgjet->Pt() / ppjet->Pt(), ppweight );
+
 	if ( PythiaTruth2D ) PythiaTruth2D->Fill( ppjet->Pt(), ppzg[j], ppweight );
       }
     }

@@ -45,7 +45,7 @@ int SystematicsVisualizer()
   // const Int_t Nx = 2;
   // const Int_t Ny = 3;
   const Int_t Nx = 1;
-  const Int_t Ny = 5;
+  const Int_t Ny = 6;
 
   // Good for Nx=3, Ny=2, 300,240;
   float lMargin = 0.2;
@@ -104,6 +104,22 @@ int SystematicsVisualizer()
   TH1D* t  = (TH1D*) fErrors->Get( pivot+"_minmax_T_ratio" )->Clone("t");
   TH1D* hc  = (TH1D*) fErrors->Get( pivot+"_minmax_H_ratio" )->Clone("hc");
 
+  TString sunf = TString("Sys") + pivot;
+  sunf.ReplaceAll("5_2","5");
+  sunf.ReplaceAll("0_2","0");
+  cout << sunf << endl;
+  TH1D* s  = (TH1D*) fErrors->Get( sunf )->Clone("s");
+  TH1D* unf  = s->Clone("unf");
+  unf->Reset();
+  for (int i=1; i<=s->GetNbinsX() ; ++ i ){
+    if ( s->GetBinError(i)>0 ){
+	unf->SetBinContent (i, s->GetBinError(i) / s->GetBinContent(i) );
+    }
+  }
+
+  // new TCanvas;
+  // unf->Draw();
+  // return 0;
   
   
   
@@ -114,7 +130,8 @@ int SystematicsVisualizer()
       e->SetBinContent(i, 0 );         e->SetBinError(i, 0 );
       r->SetBinContent(i, 0 );         r->SetBinError(i, 0 );
       t->SetBinContent(i, 0 );         t->SetBinError(i, 0 );
-      hc->SetBinContent(i, 0 );         hc->SetBinError(i, 0 );
+      hc->SetBinContent(i, 0 );        hc->SetBinError(i, 0 );
+      unf->SetBinContent(i, 0 );       unf->SetBinError(i, 0 );
     }
     stat->SetBinError(i, stat->GetBinError(i) / stat->GetBinContent(i) );
     stat->SetBinContent(i, 1 );
@@ -132,7 +149,10 @@ int SystematicsVisualizer()
     r->SetBinError(i, r->GetBinContent(i) );    r->SetBinContent(i, 1 );
     t->SetBinError(i, t->GetBinContent(i) );    t->SetBinContent(i, 1 );
     hc->SetBinError(i, hc->GetBinContent(i) );    hc->SetBinContent(i, 1 );
-
+    unf->SetBinError(i, unf->GetBinContent(i) );    unf->SetBinContent(i, 1 );
+    // update tot which doesn't contain unfolding
+    tot->SetBinError (i, sqrt( pow( unf->GetBinError(i), 2) + pow( tot->GetBinError(i), 2) ));
+    
   }
   stat->SetAxisRange(0.1 + 0.001, 0.5 - 0.001);
   tot->SetAxisRange(0.1 + 0.001, 0.5 - 0.001);
@@ -140,6 +160,7 @@ int SystematicsVisualizer()
   r->SetAxisRange(0.1 + 0.001, 0.5 - 0.001);
   t->SetAxisRange(0.1 + 0.001, 0.5 - 0.001);
   hc->SetAxisRange(0.1 + 0.001, 0.5 - 0.001);
+  unf->SetAxisRange(0.1 + 0.001, 0.5 - 0.001);
     
   float dy = 0.05;
   float yaxismin = 1 - dy;
@@ -152,6 +173,7 @@ int SystematicsVisualizer()
   histos.Add(r);
   histos.Add(t);
   histos.Add(hc);
+  histos.Add(unf);
 
   int histcount=0;    
   for (Int_t j=Ny-1;j>=0;j--) {
@@ -215,7 +237,10 @@ int SystematicsVisualizer()
 	title = "Hadronic Correction";
 	color = kMagenta+1;
       }
-
+      if ( TString(h->GetName()) == "unf" ){
+	title = "Unfolding";
+	color = kGray+1;
+      }
 
       h->SetLineColor(color);
       h->SetFillColor(color);

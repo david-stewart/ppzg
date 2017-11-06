@@ -150,8 +150,8 @@ int CrossCheckSpectrum( TString n="2" )
 
   leg->AddEntry ( mb,"Run6 MB, Cone, R=0.5","lp");
   leg->AddEntry ( ht,"Run6 HT, Cone, R=0.5","lp");
-  leg->AddEntry ( DefR6comp->GetName(),"Run12 JP2, Cone, R=0.4","lp");
-  leg->AddEntry ( LargerR6comp->GetName(),"Run12 JP2, Cone, R=0.6","lp");
+  leg->AddEntry ( DefR6comp->GetName(),"Run12 JP2, anti-k_{T}, R=0.4","lp");
+  leg->AddEntry ( LargerR6comp->GetName(),"Run12 JP2, anti-k_{T}, R=0.6","lp");
   leg->Draw();
   gPad->SaveAs("plots/Run6Comparison.png");
 
@@ -159,6 +159,7 @@ int CrossCheckSpectrum( TString n="2" )
   // -------
   // 2009
   // -------
+  //   https://arxiv.org/abs/1506.06314
   // |eta|<1
   // double r9pt[10]   =  { 10.7032,     12.6309,    14.9538,     17.532,    20.5296,      24.2735,     28.6826,     33.7055,  39.6978,  46.6486 };
   // double r9v[10]    =  { 1.78648,    0.511837,   0.186324,  0.0547838,  0.0169785,   0.00482871,  0.00123751, 0.000270104, 5.22E-05, 7.28E-06 };
@@ -198,14 +199,15 @@ int CrossCheckSpectrum( TString n="2" )
   LargerR9comp->DrawCopy("9same");
 
   TLegend* leg;
-  leg = new TLegend( 0.3, 0.7, 0.88, 0.88, "Comparison to Run9" );
+  leg = new TLegend( 0.3, 0.65, 0.88, 0.88, "Comparison to Run9" );
   leg->SetBorderSize(0);
   leg->SetTextFont(43);
   leg->SetFillStyle(0);
 
-  leg->AddEntry ( r9,"Run9 JP2, anti-k_{T}, R=0.6, |#eta|<1", "lp");
-  leg->AddEntry ( DefR9comp->GetName(),"Run12 JP2, Cone, R=0.4, |#eta|<1-R","lp");
-  leg->AddEntry ( LargerR9comp->GetName(),"Run12 JP2, Cone, R=0.6, |#eta|<1-R","lp");
+  // leg->AddEntry ( r9,"Run9 JP2, anti-k_{T}, R=0.6, |#eta|<1", "lp");
+  leg->AddEntry ( r9,"Run9 JP2, anti-k_{T}, R=0.6, |#eta|<0.5", "lp");
+  leg->AddEntry ( DefR9comp->GetName(),"Run12 JP2, anti-k_{T}, R=0.4, |#eta|<1-R","lp");
+  leg->AddEntry ( LargerR9comp->GetName(),"Run12 JP2, anti-k_{T}, R=0.6, |#eta|<1-R","lp");
   leg->Draw();
   gPad->SaveAs("plots/Run9Comparison.png");
 }

@@ -140,6 +140,7 @@ int FigDetectorPanel( ){
       dummy->GetYaxis()->SetTitle(pph->GetYaxis()->GetTitle());
       dummy->Reset();
       dummy->SetLineColor(0);      dummy->SetLineWidth(0);
+      dummy->SetTitle( ";z_{g}^{Det};1/N dN/dz_{g}^{Det}" );	  
       dummy->Draw();
 
       // Size factors
@@ -225,19 +226,31 @@ int FigDetectorPanel( ){
 	return -1;
 	break; // ROOT can be stupid
       }
+      // DEBUG
+      geanth->SetFillColor(kGray);
+      geanth->SetMarkerStyle( 1 );
+      geanth->SetMarkerSize( 0 );
+      geanth->SetMarkerColor( kGray );
+      geanth->SetLineColor( kGray );
+      
       pph->SetLineWidth( 2 );
       pph->Draw("9same");
-      geanth->Draw("9same");
+      geanth->SetAxisRange( 0.1+0.001, 0.5 - 0.001, "x");
+      // geanth->Draw("9same");
+      // geanth->Draw("9histsame");
+      geanth->Draw("9e3same");
+      pph->Draw("9same");
 	    
       s="p_{T}^{Det}="; s+=int(ptleft); s+="-"; s+=int(ptright); s+=" GeV/c";
-      leg = new TLegend( 0.25, 3.6, 0.5, 6.7, "", "br" );
+      leg = new TLegend( 0.22, 3.6, 0.5, 6.7, "", "br" );
       leg->SetBorderSize(0);
       leg->SetTextFont(43);
       leg->SetTextSize(legs);
       leg->SetHeader(s);
 
       leg->AddEntry(pph->GetName(), "p+p Measured","lp");
-      leg->AddEntry(geanth->GetName(), "GEANT","lp");
+      // leg->AddEntry(geanth->GetName(), "Pythia6@STAR","lp");
+      leg->AddEntry(geanth->GetName(), "Pythia6@STAR","f");
 
       leg->Draw();
       
