@@ -68,13 +68,13 @@ setenv intype pico
 setenv etacut 1
 setenv trig all
 
-# setenv hadcorr 0.999999999
-# setenv ht 5.4
-# setenv OutBase SystGeant_NoEff_NoBg_HT54
-
-setenv hadcorr -1
+setenv hadcorr 0.999999999
 setenv ht 5.4
-setenv OutBase SystGeant_MIP_NoEff_NoBg_HT54
+setenv OutBase SystGeant_NoEff_NoBg_HT54
+
+# setenv hadcorr -1
+# setenv ht 5.4
+# setenv OutBase SystGeant_MIP_NoEff_NoBg_HT54
 
 
 set rerunlist = Rerun_${OutBase}.txt
@@ -102,12 +102,12 @@ set submitted=0
 
 set submitted=0
 foreach File ( Data/AddedGeantPythia/pico*root )
-    # foreach Tow ( 0 -1 1 )
-    # 	foreach Smear ( 0 1 )
-    # 	    foreach Eff ( 0 -1 )
-    foreach Tow ( 0 )
-    	foreach Smear ( 0 )
-    	    foreach Eff ( 0 )
+    foreach Tow ( 0 -1 1 )
+    	foreach Smear ( 0 1 )
+    	    foreach Eff ( 0 -1 )
+    # foreach Tow ( 0 )
+    # 	foreach Smear ( 0 )
+    # 	    foreach Eff ( 0 )
 
 		@ TowEff = $Tow * $Eff
     		@ TowSmear = $Tow * $Smear

@@ -33,29 +33,8 @@ setenv Nevent -1
 # setenv OutBase ReCut_Geant12_NoEff_NoBg_HT54_JP
 # setenv trig ppJP
 
-# #setenv pcmin 0.2
-# setenv pcmin 0.0
-# setenv R 0.4
-# setenv bg 0
-# setenv ht -1
-# setenv chainname JetTreeMc
-# setenv intype mcpico
-# setenv etacut 7
-# setenv OutBase ReCut_McGeant12_NoEff_NoBg_MB
-# setenv trig all
-
-# setenv pcmin 0.2
-# setenv R 0.4
-# setenv bg 0
-# setenv ht -1
-# setenv chainname JetTree
-# setenv intype pico
-# setenv etacut 1
-# setenv OutBase Test_Geant12_NoEff_NoBg_all
-# setenv trig all
-
 setenv pcmin 0.2
-setenv R 0.6
+setenv R 0.4
 setenv bg 0
 setenv chainname JetTreeMc
 setenv intype mcpico
@@ -63,7 +42,6 @@ setenv etacut 7
 setenv trig all
 setenv ht -1
 setenv OutBase McGeant12_NoEff_NoBg_all
-
 
 if ( $chainname == JetTreeMc ) then
     if ( $etacut != 7 ) then

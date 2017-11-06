@@ -36,9 +36,10 @@
 ## we estimate a combined systematic uncertainty in ET of 7% and an event-by-event resolution of 17%.
 ## using 4.8% for now. Can't find the source, will add later.
 
+## -- Hadronic correction - test 50% and MIP% 
+## Use difference between 100% and MIP
+
 ## -- Tower inefficiency uncertainty 1%
-## Not done for now
-## Hadronic correction - test 70% vs 100% 
 ## Not done for now
 
 
@@ -68,21 +69,17 @@ setenv intype pico
 setenv etacut 1
 setenv trig ppJP2
 
-#setenv hadcorr 0.99999
-# setenv ht 5.4
-# setenv OutBase SystGeant12_NoEff_NoBg_HT54_JP2
-
-setenv hadcorr 0.99999
-setenv ht -1
-setenv OutBase SystGeant12_NoEff_NoBg_JP2
+# setenv hadcorr 0.99999
+# setenv ht -1
+# setenv OutBase SystGeant12_NoEff_NoBg_JP2
 
 # setenv hadcorr 0.5
 # setenv ht -1
 # setenv OutBase SystGeant12_HC50_NoEff_NoBg_JP2
 
-# setenv hadcorr -1
-# setenv ht -1
-# setenv OutBase SystGeant12_MIP_NoEff_NoBg_JP2
+setenv hadcorr -1
+setenv ht -1
+setenv OutBase SystGeant12_MIP_NoEff_NoBg_JP2
 
 if ( $R != 0.4 ) then
     setenv OutBase R${R}_$OutBase
@@ -154,9 +151,9 @@ foreach File ( Data/AddedEmbedPythiaRun12pp200/Cleanpp12*root )
 		# echo "Logging output to " $LogFile
 		# echo "Logging errors to " $ErrFile
 		# echo to resubmit:
-		# echo qsub -V -p 10 -q  erhiq -l mem=6gb -W umask=0022 -N SystGeantGroom -o $LogFile -e $ErrFile -- ${ExecPath}/qwrap.sh ${ExecPath} $Exec $Args	       
 
-		set qcommand = "qsub -V -q  erhiq -l mem=4gb -W umask=0022 -r y -N SystGeantGroom -o $LogFile -e $ErrFile -- ${ExecPath}/qwrap.sh ${ExecPath} $Exec $Args"
+		set qcommand = "qsub -V -q  mwsuq -l mem=4gb -W umask=0022 -r y -N SystGeantGroom -o $LogFile -e $ErrFile -- ${ExecPath}/qwrap.sh ${ExecPath} $Exec $Args"
+		# set qcommand = "qsub -V -q  erhiq -l mem=4gb -W umask=0022 -r y -N SystGeantGroom -o $LogFile -e $ErrFile -- ${ExecPath}/qwrap.sh ${ExecPath} $Exec $Args"
 		set qresult=`$qcommand` || exit
 		echo $qresult
 		echo $qresult $qcommand >> $rerunlist

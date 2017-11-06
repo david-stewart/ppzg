@@ -38,10 +38,6 @@ set ResultDir   = Results/Pieces
 
 setenv pcmin 0.2
 
-#setenv OutBase Groom_McGeant
-#setenv pcmin 2.0
-#setenv NameBase HighConsGroom
-
 # setenv R 0.4
 # setenv ht 5.4
 # setenv trig ppJP2
@@ -61,11 +57,6 @@ setenv OutBase ForPaper_Pp12_JP2_NoEff_NoBgSub
 # setenv hadcorr -1
 # setenv OutBase ForPaper_Pp12_JP2_MIP_NoEff_NoBgSub
 
-# setenv bg 1
-# setenv OutBase Pp_HT54_NoEff_AreaSub
-
-# setenv bg 2
-# setenv OutBase Pp_HT54_NoEff_ConstSubPre
 
 
 if ( $R != 0.4 ) then

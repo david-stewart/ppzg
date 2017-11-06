@@ -34,19 +34,19 @@ set ResultDir   = Results/Pieces
 
 setenv pcmin 0.2
 
-# setenv R 0.4
-# setenv ht -1
-# setenv trig all
-# setenv bg 0
-# setenv OutBase ForPaper_Pythia8_NoEff_NoBgSub
-# setenv trig all
-
 setenv R 0.4
 setenv ht -1
 setenv trig all
 setenv bg 0
-setenv OutBase RESHUFFLED_Pythia8_NoEff_NoBgSub
+setenv OutBase ForPaper_Pythia8_NoEff_NoBgSub
 setenv trig all
+
+# setenv R 0.4
+# setenv ht -1
+# setenv trig all
+# setenv bg 0
+# setenv OutBase RESHUFFLED_Pythia8_NoEff_NoBgSub
+# setenv trig all
 
 set submitted=0
 foreach File ( Data/AlternateRhicPythia/LargeEtaPythiaOnly_1_*root )

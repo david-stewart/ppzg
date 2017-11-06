@@ -45,13 +45,13 @@ setenv R 0.4
 setenv ht 5.4
 setenv trig ppHT
 
-# setenv bg 0
-# setenv hadcorr 0.999999
-# setenv OutBase Recut_Pp_HT54_NoEff_NoBgSub
-
 setenv bg 0
-setenv hadcorr -1
-setenv OutBase Recut_Pp_HT54_MIP_NoEff_NoBgSub
+setenv hadcorr 0.999999
+setenv OutBase Recut_Pp_HT54_NoEff_NoBgSub
+
+# setenv bg 0
+# setenv hadcorr -1
+# setenv OutBase Recut_Pp_HT54_MIP_NoEff_NoBgSub
 
 # setenv bg 1
 # setenv OutBase Pp_HT54_NoEff_AreaSub
