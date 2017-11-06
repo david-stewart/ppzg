@@ -785,6 +785,18 @@ EVENTRESULT PpZgAnalysis::RunEvent (){
       userinfo->SetNumber(NeutralPart.pt()  / CurrentJet.pt());
       CurrentJet.set_user_info ( userinfo );
     }
+
+    // DEBUG - Recluster now
+    // Well, good-ish. That doesn't make a difference in pt
+    // cout << CurrentJet.pt() << " ---> ";
+    // JetAnalysisUserInfo userinfo = CurrentJet.user_info<JetAnalysisUserInfo> ();
+    // JetAnalysisUserInfo* newuserinfo = new JetAnalysisUserInfo( userinfo.GetQuarkCharge(), userinfo.GetTag(), userinfo.GetNumber() );
+    // PseudoJet newjet = contrib::Recluster(cambridge_algorithm, JetDef.max_allowable_R)( CurrentJet );
+    // if ( fabs(newjet.pt() - CurrentJet.pt()) > 1e-7 ){
+    //   cout << CurrentJet.pt() << " ---> " << newjet.pt() << endl;
+    // }
+    // CurrentJet = newjet;
+    // CurrentJet.set_user_info ( newuserinfo );
     
     // Run SoftDrop and examine the output
     PseudoJet sd_jet = sd( CurrentJet );
@@ -816,6 +828,10 @@ EVENTRESULT PpZgAnalysis::RunEvent (){
     //CurrentResult = GroomingResultStruct ( CurrentJet, sd_jet, zg);
     // GroomingResult.push_back ( GroomingResultStruct ( &CurrentJet, &sd_jet, zg) );
     GroomingResult.push_back ( GroomingResultStruct ( CurrentJet, sd_jet, zg) );
+
+    // cout << CurrentJet.pt() - sd_jet.pt() << endl;
+    if ( CurrentJet.pt() - sd_jet.pt() < -1e-7 ) cout << CurrentJet.pt() - sd_jet.pt() << endl;
+    
     
   }  
   // By default, sort for original jet pt
