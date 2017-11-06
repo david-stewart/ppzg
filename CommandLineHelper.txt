@@ -1,4 +1,190 @@
 
+Data:
+-- Default pp
+-- R=0.2 pp
+-- R=0.6 pp
+-- HC50 pp
+-- MIP pp
+qRunPp12.csh
+Add by hand
+hadd -f Results/ForPaper_Pp12_JP2_NoEff_NoBgSub.root Results/Pieces/ForPaper_Pp12_JP2_NoEff_NoBgSub_sum*
+hadd -f Results/R0.6_ForPaper_Pp12_JP2_NoEff_NoBgSub.root Results/Pieces/R0.6_ForPaper_Pp12_JP2_NoEff_NoBgSub_sum*
+hadd -f Results/ForPaper_Pp12_JP2_HC50_NoEff_NoBgSub.root Results/Pieces/ForPaper_Pp12_JP2_HC50_NoEff_NoBgSub_sum*
+etc.
+
+Prep for unfolding
+ root -l macros/PrepUnfolding.cxx+'("Results/ForPaper_Pp12_JP2_NoEff_NoBgSub.root")'
+ root -l macros/PrepUnfolding.cxx+'("Results/R0.6_ForPaper_Pp12_JP2_NoEff_NoBgSub.root")'
+ root -l -b -q macros/PrepUnfolding.cxx+'("Results/R0.2_ForPaper_Pp12_JP2_NoEff_NoBgSub.root")'
+ root -l -b -q macros/PrepUnfolding.cxx+'("Results/ForPaper_Pp12_JP2_MIP_NoEff_NoBgSub.root")'
+ root -l -b -q macros/PrepUnfolding.cxx+'("Results/ForPaper_Pp12_JP2_HC50_NoEff_NoBgSub.root")'
+ 
+Systematic
+-- Default Geant
+-- R=0.2 Geant
+-- R=0.6 Geant
+-- HC50 Geant
+-- MIP Geant
+qRunSystematicGeant12.csh
+check via 
+( for log in `grep -L Done logs/*SystGeant12_NoEff_NoBg_JP2*out` ; do grep $log Rerun_*txt; done; ) |cut -f1 -d" " --complement
+
+( for log in `grep -L Done logs/*SystGeant12_*out` ; do grep $log Rerun_*txt; done; ) |cut -f1 -d" " --complement
+ Rerun_SystGeant12_NoEff_NoBg_JP2.txt
+Rerun_R0.2_SystGeant12_NoEff_NoBg_JP2.txt
+Rerun_R0.6_SystGeant12_NoEff_NoBg_JP2.txt
+Rerun_SystGeant12_HC50_NoEff_NoBg_JP2.txt
+Rerun_SystGeant12_MIP_NoEff_NoBg_JP2.txt
+
+and you should have 600 + 120*4 = 1080 of these outfiles
+grep -l Done logs/*SystGeant12*|wc -l
+
+grep -l Done logs/*SystGeant12_NoEff_NoBg_JP2*out|grep -v R0.2|grep -v r0.6|wc -l
+
+
+then add via
+qSystGeantAdder.csh
+
+
+
+GeantMc
+-- Default GeantMc
+-- R=0.2 GeantMc
+-- R=0.6 GeantMc
+qRunGeant12.csh
+
+and you should have 120*3 = 360 of these outfiles
+
+grep -l Done logs/*McGeant12*out | wc -l
+
+then add via
+qGeant12Adder.csh
+
+## ----- Now match truth and detector in run12
+#### With systematics
+for i in Results/*[01]_SystGeant12_NoEff_NoBg_JP2.root ; do
+    root -l -b -q macros/MatchGeantToPythia.cxx+\(\"$i\",\"Results/McGeant12_NoEff_NoBg_all.root\"\)
+done
+
+## MIP, HC50
+root -l -b -q macros/MatchGeantToPythia.cxx+'("Results/AEff0_PtSmear0_ATow0_SystGeant12_MIP_NoEff_NoBg_JP2.root","Results/McGeant12_NoEff_NoBg_all.root")' 
+root -l -b -q macros/MatchGeantToPythia.cxx+'("Results/AEff0_PtSmear0_ATow0_SystGeant12_HC50_NoEff_NoBg_JP2.root","Results/McGeant12_NoEff_NoBg_all.root")' 
+
+## different R
+root -l -b -q macros/MatchGeantToPythia.cxx+'("Results/AEff0_PtSmear0_ATow0_R0.2_SystGeant12_NoEff_NoBg_JP2.root","Results/R0.2_McGeant12_NoEff_NoBg_all.root")'  
+root -l -b -q macros/MatchGeantToPythia.cxx+'("Results/AEff0_PtSmear0_ATow0_R0.6_SystGeant12_NoEff_NoBg_JP2.root","Results/R0.6_McGeant12_NoEff_NoBg_all.root")'  
+
+#### ----- And unfold in run 12
+## With systematics
+for i in Results/AEff*[01]_SystGeant12_NoEff_NoBg_JP2_WithMisses*.root ; do
+  root -l -b -q macros/DoUnfolding.cxx+\(\"$i\",\"Results/ForUnfolding_ForPaper_Pp12_JP2_NoEff_NoBgSub.root\"\)
+done
+
+## MIP, HC50
+root -l -b -q macros/DoUnfolding.cxx+'("Results/AEff0_PtSmear0_ATow0_SystGeant12_MIP_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_McGeant12_NoEff_NoBg_all.root","Results/ForUnfolding_ForPaper_Pp12_JP2_MIP_NoEff_NoBgSub.root")' 
+root -l -b -q macros/DoUnfolding.cxx+'("Results/AEff0_PtSmear0_ATow0_SystGeant12_HC50_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_McGeant12_NoEff_NoBg_all.root","Results/ForUnfolding_ForPaper_Pp12_JP2_HC50_NoEff_NoBgSub.root")' 
+
+## different R
+root -l -b -q macros/DoUnfolding.cxx+'("Results/AEff0_PtSmear0_ATow0_R0.2_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_R0.2_McGeant12_NoEff_NoBg_all.root","Results/ForUnfolding_R0.2_ForPaper_Pp12_JP2_NoEff_NoBgSub.root")' 
+root -l -b -q macros/DoUnfolding.cxx+'("Results/AEff0_PtSmear0_ATow0_R0.6_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_R0.6_McGeant12_NoEff_NoBg_all.root","Results/ForUnfolding_R0.6_ForPaper_Pp12_JP2_NoEff_NoBgSub.root")' 
+
+## You should have 9 Results/Unfolded_* files (5 systematics + 2 HC,MIP + 2 R variations)
+## Time to combine systematics
+root -l macros/PrepSystematics.cxx
+
+## diagnostics in plots/Unfolded_ForUnfolding_ForPaper_Pp12_JP2_MIP_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_SystGeant12_MIP_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_McGeant12_NoEff_NoBg_all_Everything.pdf
+
+## You can check the individual ingredients in the plots folder
+## E - tracking efficiency
+## R - tracking resolution
+## R - tower scale
+## H - hadronic correction (difference to MIP)
+ ##  open ~/mnt/grid/ppzg/plots/0.4_Incunfold_*minmax.png
+
+
+
+
+Pythia8
+-- Default Pythia
+qRunPythia.csh
+
+hadd -f Results/ForPaper_Pythia8_NoEff_NoBgSub.root Results/Pieces/ForPaper_Pythia8_NoEff_NoBgSub*.root
+
+## Bit of a roundabout way of cutting it up
+ root -l macros/PrepUnfolding.cxx+'("Results/ForPaper_Pythia8_NoEff_NoBgSub.root")'
+ root -l macros/PrepPurePythia.cxx
+
+
+
+
+Run6 Data:
+-- Default Run6
+-- MIP Run6
+./qRunPp.csh
+Should have one each
+ok
+Prep for unfolding
+ root -l macros/PrepUnfolding.cxx+'("Results/Recut_Pp_HT54_NoEff_NoBgSub.root")'
+ root -l macros/PrepUnfolding.cxx+'("Results/Recut_Pp_HT54_MIP_NoEff_NoBgSub.root")'
+
+
+Systematic
+-- Default Geant
+-- MIP Geant
+
+./qRunSystematicGeant.csh
+Should have 580
+grep -l Done logs/*SystGeant_NoEff_*out |wc -l
+ ok
+
+Should have 116
+grep -l Done logs/*SystGeant_MIP_NoEff_*out |wc -l
+ok
+
+Then add via
+./qSystGeantAdder.csh
+
+GeantMc
+-- Default GeantMc
+
+Should have 116
+grep -l Done logs/Recut_McGeant_NoEff_*out |wc -l
+ok
+
+Then add via
+./qGeantAdder.csh
+
+
+## ----- Now match truth and detector in run6
+#### With systematics
+for i in Results/*[01]_SystGeant_NoEff_NoBg_HT54.root ; do
+   root -l -b -q macros/MatchGeantToPythia.cxx+\(\"$i\",\"Results/Recut_McGeant_NoEff_NoBg_MB.root\"\)
+done
+
+for i in Results/*[01]_SystGeant_MIP_NoEff_NoBg_HT54.root ; do
+   root -l -b -q macros/MatchGeantToPythia.cxx+\(\"$i\",\"Results/Recut_McGeant_NoEff_NoBg_MB.root\"\)
+done
+
+#### ----- And unfold in run 6
+## With systematics
+for i in Results/AEff*[01]_SystGeant_NoEff_NoBg_HT54_WithMisses*.root ; do
+  root -l -b -q macros/DoUnfolding.cxx+\(\"$i\",\"Results/ForUnfolding_Recut_Pp_HT54_NoEff_NoBgSub.root\"\)
+done
+
+  root -l -b -q macros/DoUnfolding.cxx+\(\"Results/AEff0_PtSmear0_ATow0_SystGeant_MIP_NoEff_NoBg_HT54_WithMisses_WithFakes_TrainedWith_Recut_McGeant_NoEff_NoBg_MB.root\",\"Results/ForUnfolding_Recut_Pp_HT54_MIP_NoEff_NoBgSub.root\"\)
+
+
+
+
+
+
+
+
+
+
+
+
+
 for i in Results/*SystGeant12_NoEff_NoBg*_JP2.root ; do
     root -l -b -q macros/MatchGeantToPythia.cxx+\(\"$i\",\"Results/McGeant12_NoEff_NoBg_all.root\"\)
 done
