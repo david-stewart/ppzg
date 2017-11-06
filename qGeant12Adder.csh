@@ -8,8 +8,8 @@
 
 set ExecPath = `pwd`
 
-#set RMod = ""
-set RMod = R0.6_
+set RMod = ""
+#set RMod = R0.2_
 
 
 # set inbase  = ReCut_McGeant12_NoEff_NoBg_MB_Cleanpp12Pico
