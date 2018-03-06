@@ -89,7 +89,8 @@ $(BDIR)/%  : $(ODIR)/%.o
 ###############################################################################
 ############################# Main Targets ####################################
 ###############################################################################
-all    : $(BDIR)/RunPpZg
+all    : $(BDIR)/RunPpZg \
+	 $(BDIR)/MakeSmallerTrees
 #	 doxy
 
 $(SDIR)/dict.cxx 		: $(SDIR)/ktTrackEff.hh
@@ -102,8 +103,8 @@ $(ODIR)/PpZgAnalysis.o 	 	: $(SDIR)/PpZgAnalysis.cxx $(INCS) $(SDIR)/PpZgAnalysi
 
 # bin
 #$(BDIR)/RunPpZg	: $(ODIR)/RunPpZg.o		$(ODIR)/PpZgAnalysis.o	 	lib/libMyJetlib.so
-$(BDIR)/RunPpZg	:	$(ODIR)/RunPpZg.o		$(ODIR)/PpZgAnalysis.o
-
+$(BDIR)/RunPpZg	:		$(ODIR)/RunPpZg.o		$(ODIR)/PpZgAnalysis.o
+$(BDIR)/MakeSmallerTrees :	$(ODIR)/MakeSmallerTrees.o
 ###############################################################################
 ##################################### MISC ####################################
 ###############################################################################

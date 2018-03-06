@@ -49,7 +49,8 @@ setenv ht -1
 setenv trig ppJP2
 setenv bg 0
 setenv hadcorr 0.9999999
-setenv OutBase ForPaper_Pp12_JP2_NoEff_NoBgSub
+#setenv OutBase ForPaper_Pp12_JP2_NoEff_NoBgSub
+setenv OutBase RESHUFFLED_Pp12_JP2_NoEff_NoBgSub
 
 # setenv hadcorr 0.5
 # setenv OutBase ForPaper_Pp12_JP2_HC50_NoEff_NoBgSub
@@ -57,6 +58,12 @@ setenv OutBase ForPaper_Pp12_JP2_NoEff_NoBgSub
 # setenv hadcorr -1
 # setenv OutBase ForPaper_Pp12_JP2_MIP_NoEff_NoBgSub
 
+# setenv R 0.6
+# setenv ht -1
+# setenv trig ppJP2
+# setenv bg 1
+# setenv hadcorr 0.9999999
+# setenv OutBase CrossCheck_Pp12_JP2_NoEff_AreaSub
 
 
 if ( $R != 0.4 ) then

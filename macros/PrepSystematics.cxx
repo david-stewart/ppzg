@@ -14,7 +14,9 @@ int PrepSystematics( TString R="0.4"  )
   // TString Base = "Results/Unfolded_ForUnfolding_Recut_Pp_HT54_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_SystGeant_NoEff_NoBg_HT54_WithMisses_WithFakes_TrainedWith_Recut_McGeant_NoEff_NoBg_MB.root";  
 
   // --- Run 12 ---
-  TString Base = "Results/Unfolded_ForUnfolding_ForPaper_Pp12_JP2_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_McGeant12_NoEff_NoBg_all.root";  
+  // TString Base = "Results/Unfolded_ForUnfolding_ForPaper_Pp12_JP2_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_McGeant12_NoEff_NoBg_all.root";
+  TString Base = "Results/Unfolded_ForUnfolding_R0.2_ForPaper_Pp12_JP2_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_R0.2_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_R0.2_McGeant12_NoEff_NoBg_all.root";
+  // TString Base = "Results/Unfolded_ForUnfolding_R0.6_ForPaper_Pp12_JP2_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_R0.6_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_R0.6_McGeant12_NoEff_NoBg_all.root";
 
   // Unrebinned versions
   // --- Latest Run6 ---

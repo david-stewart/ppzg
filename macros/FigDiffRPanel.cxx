@@ -1,7 +1,7 @@
 // Based on 
 // $ROOTSYS/tutorials/graphics/canvas2.C
 
-#include "ZgPaperConsts.hxx"
+#include<ZgPaperConsts.hxx>
 
 void CanvasPartition(TCanvas *C,const Int_t Nx = 2,const Int_t Ny = 2,
                      Float_t lMargin = 0.15, Float_t rMargin = 0.05,
@@ -15,20 +15,11 @@ void SetupDummy ( TH1* hFrame,
 		  float yloffset, float ytoffset,
 		  float ytickbase, int ndivy);
 
-int FigPanel(
-	     // --- Latest Run 6 ---
-	     // TString inname="Results/TotalzgSystematics_Recut_Pp_HT54_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_SystGeant_NoEff_NoBg_HT54_WithMisses_WithFakes_TrainedWith_Recut_McGeant_NoEff_NoBg_MB.root"
-	     // --- Use this ---
-	     TString inname="Results/TotalzgSystematics_ForPaper_Pp12_JP2_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes.root"
-	     // --- Different R
-	     // TString inname="Results/TotalzgSystematics_R0.2_ForPaper_Pp12_JP2_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_R0.2_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_R0.2_McGeant12_NoEff_NoBg_all.root"
-	     // TString inname="Results/TotalzgSystematics_R0.6_ForPaper_Pp12_JP2_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_R0.6_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_R0.6_McGeant12_NoEff_NoBg_all.root"
-	     // Unrebinned versions
-	     // --- Latest Run 6 ---
-	     // TString inname="Results/TotalzgSystematics_NoRebin_Recut_Pp_HT54_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_SystGeant_NoEff_NoBg_HT54_WithMisses_WithFakes_TrainedWith_Recut_McGeant_NoEff_NoBg_MB.root"
-	     // --- Use one of these ---
-	     // TString inname="Results/TotalzgSystematics_NoRebin_ForPaper_Pp12_JP2_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes.root"
-	     //// Not this one really TString inname="Results/TotalzgSystematics_NoRebin_ForPaper_Pp12_HT54_JP2_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_HT54_JP2_WithMisses_WithFakes.root"
+int FigDiffRPanel(
+		  TString inname="Results/TotalzgSystematics_ForPaper_Pp12_JP2_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes.root",
+		  // --- Different R
+		  TString R2name="Results/Unfolded_ForUnfolding_R0.2_ForPaper_Pp12_JP2_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_R0.2_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_R0.2_McGeant12_NoEff_NoBg_all.root",
+		  TString R6name="Results/Unfolded_ForUnfolding_R0.6_ForPaper_Pp12_JP2_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_R0.6_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_R0.6_McGeant12_NoEff_NoBg_all.root"
 	     ){
   TString plotpath="./figs/";
   
@@ -46,9 +37,6 @@ int FigPanel(
 
   Float_t small = 1e-5; // for panel setup
 
-  bool ShowNoHadro = true;
-  bool ShowHardProbes=inname.Contains("ForPaper_Pp12_JP2") && false;
-    
 
   // Load histos
   TFile* infile = new TFile(inname,"READ");
@@ -159,54 +147,12 @@ int FigPanel(
   }
 
   // Load Pythia8 and Hard Probes comparison
-  // TFile* fHP = new TFile( "~/BasicAj/AjResults/UnfoldedPpSystematics_Histos.root", "READ");
-  TFile* fHP = new TFile( "~/BasicAj/NewAjResults/UnfoldedPpSystematics_Histos.root", "READ");
-
+  TFile* fHP = new TFile( "~/BasicAj/AjResults/UnfoldedPpSystematics_Histos.root", "READ");
   // TFile* fP8 = new TFile( "~/BasicAj/AjResults/UnfoldedPpSystematics_Histos.root", "READ");
-  // TString fP8name = "Results/CutUp_ForPaper_Pythia8_NoEff_NoBgSub.root";
-  // TString fP8name = "Results/CutUp_ForPaper_Pythia8_NoEff_NoBgSub_NoHadronization.root";
-  TString nP8default = "Results/CutUp_ForPaper_Pythia8_NoEff_NoBgSub.root";
-  TString nP8nohadro = "Results/CutUp_ForPaper_Pythia8_NoEff_NoBgSub_NoHadronization.root";
-
-  TString nHWdefault = "Results/CutUp_ForPaper_Herwig_NoEff_NoBgSub.root";
-  TString nHWnohadro = "Results/CutUp_ForPaper_Herwig_NoEff_NoBgSub_NoHadro.root";
-    
-  if ( inname.Contains("R0.2") ){
-    nP8default.ReplaceAll( "CutUp_ForPaper","CutUp_R0.2_ForPaper");
-    nHWdefault.ReplaceAll( "CutUp_ForPaper","CutUp_R0.2_ForPaper");
-    nP8nohadro.ReplaceAll( "CutUp_ForPaper","CutUp_R0.2_ForPaper");
-    nHWnohadro.ReplaceAll( "CutUp_ForPaper","CutUp_R0.2_ForPaper");
-  }
-  if ( inname.Contains("R0.6") ){
-    nP8default.ReplaceAll( "CutUp_ForPaper","CutUp_R0.6_ForPaper");
-    nHWdefault.ReplaceAll( "CutUp_ForPaper","CutUp_R0.6_ForPaper");
-    nP8nohadro.ReplaceAll( "CutUp_ForPaper","CutUp_R0.6_ForPaper");
-    nHWnohadro.ReplaceAll( "CutUp_ForPaper","CutUp_R0.6_ForPaper");
-  }
-  TFile* fP8default = new TFile( nP8default , "READ");
-  TFile* fHWdefault = new TFile( nHWdefault , "READ");
-  TFile* fP8nohadro = new TFile( nP8nohadro , "READ");
-  TFile* fHWnohadro = new TFile( nHWnohadro , "READ");
-
-  TLatex latex;
-  // latex.SetNDC();
-  
-  // Prep Theory curve
-  bool ShowTheory=true;
-  TF1* PbarQjet = new TF1("PbarQjet","1./[0] * 4./3. * ( (1+pow(x,2))/(1-x) + (1 + pow(1-x,2))/x )", 0.1, 0.5);
-  PbarQjet->SetParameter( 0,4.2593);
-  PbarQjet->SetLineColor(kGreen);
-  
-  TF1* FUVQjet = new TF1("FUVQjet", "[0]*(PbarQjet)", 0.1,0.5);
-  FUVQjet->SetParameter( 0,1);
-
-  FUVQjet->SetLineColor(kTeal+2);
-  FUVQjet->SetLineWidth(2);
-  FUVQjet->SetLineStyle(3);
-  FUVQjet->SetParameter( 0,1);
+  TFile* fP8 = new TFile( "Results/CutUp_ForPaper_Pythia8_NoEff_NoBgSub.root", "READ");
+  // TFile* fP8 = new TFile( "Results/CutUp_RESHUFFLED_Pythia8_NoEff_NoBgSub.root", "READ");
 
   TLegend* leg;
-  TLegend* leg2;
   TString s;
   
   // And draw. Reordered.
@@ -223,7 +169,7 @@ int FigPanel(
       if ( !SuppresSystematics ){
 	sysunfold = (TH1D*) SysUnfold.At(histcount);
         sysrest = (TH1D*) SysRest.At(histcount);
-	systot = (TH1D*) sysrest->Clone( TString("tot")+sysrest->GetName() );
+	systot = sysrest->Clone( TString("tot")+sysrest->GetName() );
 	for (int ii=1; ii<=systot->GetNbinsX() ; ++ii ){
 	  systot->SetBinError (ii, sqrt( pow( sysunfold->GetBinError(ii), 2) + pow( sysrest->GetBinError(ii), 2) ));
 	}
@@ -248,7 +194,7 @@ int FigPanel(
       // float yaxismax = 1.2*h->GetMaximum();
       // float yaxismin = 0;
       float yaxismin = -0.5;
-      float yaxismax = 8;
+      float yaxismax = 7;
       if ( inname.Contains("NoRebin")) yaxismax = 8.5;
 
       SetupDummy ( dummy,
@@ -260,7 +206,7 @@ int FigPanel(
 		   ytickbase, ndivy );
 
       h->SetAxisRange(0.1 + 0.001, 0.5 - 0.001);
-
+	    
       if ( !SuppresSystematics){
 	systot->SetAxisRange(0.1 + 0.001, 0.5 - 0.001);
 	systot->SetMarkerStyle(20);      systot->SetMarkerSize(0);      systot->SetLineWidth( 0 );
@@ -279,10 +225,7 @@ int FigPanel(
       float ptleft=0;
       float ptright=0;
 
-      // leg = new TLegend( 0.2, 4.4, 0.5, 6.7, "", "br" );
-      // if (ShowTheory) leg = new TLegend( 0.2, 4.0, 0.5, 6.8, "", "br" );
-      leg = new TLegend( 0.2, 6.5, 0.5, 7.5, "", "br" );
-      
+      leg = new TLegend( 0.2, 4.4, 0.5, 6.7, "", "br" );
       leg->SetBorderSize(0);
       leg->SetTextFont(43);
       leg->SetTextSize(legs);
@@ -324,179 +267,36 @@ int FigPanel(
 	systot->SetFillColor( zgconsts::syscol[histcount]  );
       }
 
-      // Systematics in the back of theory
+      // Hard Probes
+      TString name="UnfoldedNS_"; name += int(ptleft+0.01); name += "_"; name += int(ptright+0.01); name += "_minmax";
+      TH1D* minmaxNS = (TH1D*) fHP->Get(name);
+      // cout << " ---------------------------------> Adding " << name << endl;
+      
       if ( !SuppresSystematics){
 	// sysunfold->Draw("9e2same");
 	// sysrest->Draw("9e2same");
 	// h->Draw("9E0X0same");
 	systot->Draw("9e2same");
       }
+      h->Draw("9same");
+      s="p_{T}="; s+=int(ptleft); s+="-"; s+=int(ptright); s+=" GeV/c";
+      leg->AddEntry(h->GetName(), s,"lp");
 
-      // Hard Probes
-      TString name="UnfoldedNS_"; name += int(ptleft+0.01); name += "_"; name += int(ptright+0.01); name += "_minmax";
-      TH1D* minmaxNS = (TH1D*) fHP->Get(name);
-      // cout << " ---------------------------------> Adding " << name << endl;
-      if ( minmaxNS && ShowHardProbes ){
-	minmaxNS->SetLineWidth( 0 );
-	minmaxNS->SetFillStyle(1001);
-	minmaxNS->SetFillColor( kRed-10 );
-	minmaxNS->SetLineColor(kRed-10);
-	minmaxNS->SetMarkerColor(kRed);
-	minmaxNS->SetMarkerStyle(29);
-	minmaxNS->SetMarkerSize(2);
-	minmaxNS->SetAxisRange(0.11, 0.49);
-	minmaxNS->Draw("9E2same");
-	minmaxNS->Draw("9same");
-	leg->AddEntry(minmaxNS->GetName(), "HP Result");
-      } 
-            
       name = "p8_Incmeas_"; name += int(ptleft+0.01); name += int(ptright+0.01);
       // name = "AS_P8_SoftJets_MB_"; name += int(ptleft+0.01); name+="_"; name += int(ptright+0.01);
-      TH1D* hP8 = (TH1D*) fP8default->Get(name);
+      TH1D* hP8 = (TH1D*) fP8->Get(name);
       if ( hP8 ){
 	// hP8->SetLineStyle(1);
 	hP8->SetAxisRange(0.11, 0.49);
 	hP8->SetLineColor( kBlack );
 	hP8->SetLineWidth( 2 );
-	hP8->SetLineStyle( 1 );
+	hP8->SetLineStyle( 2 );
 	hP8->Draw("9lhist][same");
-	// if ( !ShowHardProbes) leg->AddEntry(hP8->GetName(), "Pythia8","l");
+	leg->AddEntry(hP8->GetName(), "Pythia8","l");
       }
 
-      TH1D* hHW = (TH1D*) fHWdefault->Get(name);
-      if ( hHW ){
-	hHW->SetName(TString(hHW->GetName())+"_herwig");
-	// hHW->SetLineStyle(1);
-	hHW->SetAxisRange(0.11, 0.49);
-	hHW->SetLineColor( kRed );
-	hHW->SetLineWidth( 4 );
-	hHW->SetLineStyle( 1 );
-	hHW->Draw("9lhist][same");
-	// if ( !ShowHardProbes) leg->AddEntry(hHW->GetName(), "Pythia8","l");
-      }
-
-      TH1D* hP8nohadro = (TH1D*) fP8nohadro->Get(name);
-      if ( hP8 && ShowNoHadro ){
-	hP8nohadro->SetName(TString(hP8nohadro->GetName())+"_nohadro");
-	hP8nohadro->SetAxisRange(0.11, 0.49);
-	hP8nohadro->SetLineColor( kGray+2 );
-	hP8nohadro->SetLineWidth( 3 );
-	hP8nohadro->SetLineStyle( 2 );
-	hP8nohadro->Draw("9lhist][same");
-	// leg->AddEntry(hP8nohadro->GetName(), "Pythia8 NoHadro","l");
-      }
-
-      TH1D* hHWnohadro = (TH1D*) fHWnohadro->Get(name);
-      if ( hHW && ShowNoHadro ){
-	hHWnohadro->SetName(TString(hHWnohadro->GetName())+"_herwig_nohadro");
-	hHWnohadro->SetAxisRange(0.11, 0.49);
-	hHWnohadro->SetLineColor( kRed );
-	hHWnohadro->SetLineWidth( 3 );
-	hHWnohadro->SetLineStyle( 2 );
-	hHWnohadro->Draw("9lhist][same");
-	// leg->AddEntry(hHWnohadro->GetName(), "Pythia8 NoHadro","l");
-      }
-
-      if (ShowTheory) {
-	FUVQjet->Draw("same");
-	// leg->AddEntry( FUVQjet, "F_{UV}^{q}","l");
-      }
-
-      // // Systematics in the back of theory
-      // if ( !SuppresSystematics){
-      // 	// sysunfold->Draw("9e2same");
-      // 	// sysrest->Draw("9e2same");
-      // 	// h->Draw("9E0X0same");
-      // 	systot->Draw("9e2same");
-      // }
-
-      // Data in the front
-      // -----------------
-      h->Draw("9same");
-      s="p_{T}="; s+=int(ptleft); s+="-"; s+=int(ptright); s+=" GeV/c";
-      leg->AddEntry(h->GetName(), s,"lp");
-
-      
       leg->Draw();
-
-      latex.SetTextColor( kAzure-6 );      latex.SetTextSize(0.07*yFactor);
-      latex.SetTextFont( 62 ); // 42: helvetica, 62: helvetica bold
-      latex.DrawLatex( .1,1, "STAR");
       
-      if ( histcount==3 ){
-	leg2 = new TLegend( 0.15, 4.0, 0.5, 6.0, "", "br" );
-	leg2->SetBorderSize(0);
-	leg2->SetTextFont(63);
-	leg2->SetTextSize(legs*0.8);
-	leg2->SetFillStyle(0);
-	leg2->AddEntry((TObject*)0, "p+p, #sqrt{s}=200 GeV", "");
-	s = "anti-k_{T}, R=0.4";
-	if ( inname.Contains("R0.2") ) s = "anti-k_{T}, R=0.2";
-	if ( inname.Contains("R0.6") ) s = "anti-k_{T}, R=0.6";
-	    
-	leg2->AddEntry((TObject*)0, s, "");
-	leg2->Draw();
-      }
-	
-      if ( histcount==1 ){
-	leg2 = new TLegend( 0.2, 4.5, 0.5, 6.5, "", "br" );
-	leg2->SetBorderSize(0);
-	leg2->SetTextFont(43);
-	leg2->SetTextSize(legs);
-	leg2->SetFillStyle(0);
-
-	if ( hP8 ){
-	  leg2->AddEntry(hP8->GetName(), "Pythia8","l");
-	  if ( hP8nohadro && ShowNoHadro ){
-	    leg2->AddEntry(hP8nohadro->GetName(), "Pythia8 NoHadro","l");
-	  }
-	  leg2->Draw();
-	}
-      } 
-
-      if ( histcount==2 ){
-	leg2 = new TLegend( 0.2, 4.5, 0.5, 6.5, "", "br" );
-	leg2->SetBorderSize(0);
-	leg2->SetTextFont(43);
-	leg2->SetTextSize(legs);
-	leg2->SetFillStyle(0);
-
-	if ( hHW ){
-	  leg2->AddEntry(hHW->GetName(), "Herwig","l");
-	  if ( hHWnohadro && ShowNoHadro ){
-	    leg2->AddEntry(hHWnohadro->GetName(), "Herwig NoHadro","l");
-	  }
-
-	  leg2->Draw();
-	}
-      } 
-
-      if ( histcount==0 ){
-	leg2 = new TLegend( 0.2, 4.5, 0.5, 6.5, "", "br" );
-	leg2->SetBorderSize(0);
-	leg2->SetTextFont(43);
-	leg2->SetTextSize(legs);
-	leg2->SetFillStyle(0);
-
-	if (ShowTheory) {
-	  leg2->AddEntry( FUVQjet, "F_{UV}^{q}","l");
-	  leg2->Draw();
-	}	
-      }
-
-      cout << "Percentage in 0 bin:" << endl;
-      cout << s << endl;
-      cout << setprecision(2);
-      cout << "Data:        " << 100*h->GetBinContent(1) / h->Integral(1,h->GetNbinsX()) << " %" << endl;
-      cout << "pythia:      " << 100*hP8->GetBinContent(1) / hP8->Integral(1,hP8->GetNbinsX()) << " %" <<  endl;
-      cout << "herwig:      " << 100*hHW->GetBinContent(1) / hHW->Integral(1,hHW->GetNbinsX()) << " %" <<  endl;
-      cout << setprecision(4);
-      if ( hP8nohadro )
-	cout << "p8 no hadro: " << 100*hP8nohadro->GetBinContent(1) / hP8nohadro->Integral(1,hP8nohadro->GetNbinsX()) << " %" <<  endl;
-      if ( hHWnohadro )
-	cout << "hw no hadro: " << 100*hHWnohadro->GetBinContent(1) / hHWnohadro->Integral(1,hHWnohadro->GetNbinsX()) << " %" <<  endl;
-      cout << " ############################# " << endl;
-	    
       histcount++; 
     }    
   }

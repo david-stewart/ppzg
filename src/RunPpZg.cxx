@@ -329,8 +329,6 @@ int main( int argc, const char** argv ){
   // Long64_t Nrejected=0;
   cout << "Running analysis" << endl;
   try {
-    // I understand that a break after continue or return is silly...
-    // But it's necessary in nested switches in root and I don't want to lose the habit    
     bool ContinueReading = true;
 
     while ( ContinueReading ){
@@ -387,6 +385,8 @@ int main( int argc, const char** argv ){
       default :
 	cerr << "Unknown return value." << endl;
 	return -1;
+	// I understand that a break after continue or return is silly...
+	// But it's necessary in nested switches in root and I don't want to lose the habit    
 	break;
       }
 	  
@@ -437,7 +437,7 @@ int main( int argc, const char** argv ){
 	    HTJetZg = gr.zg;
 	  }	  
       	} 
-
+      
 	new ( Jets[ijet] )               TStarJetVectorJet ( sv );
 	PseudoJet ChargedPart = join ( OnlyCharged( gr.orig.constituents() ) );
 	TStarJetVector csv = TStarJetVector( MakeTLorentzVector( ChargedPart ) );

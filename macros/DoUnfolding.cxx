@@ -24,20 +24,24 @@ int DoUnfolding(
 		// TString trainname = "Results/AEff0_PtSmear0_ATow0_SystGeant_NoEff_NoBg_HT54_WithMisses_WithFakes_TrainedWith_Recut_McGeant_NoEff_NoBg_MB.root",
 		// TString ppname    = "Results/ForUnfolding_Recut_Pp_HT54_NoEff_NoBgSub.root",
 		// --- Use one of these for Run 12: ---
-		TString trainname = "Results/AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_McGeant12_NoEff_NoBg_all.root",
-		TString ppname    = "Results/ForUnfolding_ForPaper_Pp12_JP2_NoEff_NoBgSub.root",	
+		// TString trainname = "Results/AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_McGeant12_NoEff_NoBg_all.root",
+		// TString ppname    = "Results/ForUnfolding_ForPaper_Pp12_JP2_NoEff_NoBgSub.root",	
 		// // --- MIP or other hadronic correction cross check ---
 		// TString trainname = "Results/AEff0_PtSmear0_ATow0_SystGeant12_MIP_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_McGeant12_NoEff_NoBg_all.root",
 		// TString ppname    = "Results/ForUnfolding_ForPaper_Pp12_JP2_MIP_NoEff_NoBgSub.root",
 		// // --- Different R ---
 		// TString trainname = "Results/AEff0_PtSmear0_ATow0_R0.6_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_R0.6_McGeant12_NoEff_NoBg_all.root",
 		// TString ppname    = "Results/ForUnfolding_R0.6_ForPaper_Pp12_JP2_NoEff_NoBgSub.root",
-
-
-		const int MaxnBayes2D = 4
+		// --- MC Closure ---
+		TString trainname = "Results/ForClosure_AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_McGeant12_NoEff_NoBg_all.root",
+		TString ppname    = "Results/ForClosure_AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_McGeant12_NoEff_NoBg_all.root",
+		// TString trainname = "Results/ForClosure_AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_JP2_NoMisses_NoFakes_TrainedWith_McGeant12_NoEff_NoBg_all.root",
+		// TString ppname    = "Results/ForClosure_AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_JP2_NoMisses_NoFakes_TrainedWith_McGeant12_NoEff_NoBg_all.root",
+		const int MaxnBayes2D = 6
 		) {
   
   int RebinZg=2;  // SHOULD BE DONE EARLIER
+  // int RebinZg=1;  // SHOULD BE DONE EARLIER
 
   bool ClosureTest = ( trainname.Contains( "ForClosure" ) || ppname.Contains( "ForClosure" ) );
   if ( ClosureTest && trainname != ppname ){
@@ -49,6 +53,7 @@ int DoUnfolding(
   // systematics histos using the full difference to N+1
   // (symmetrized for easiness. FIXME)
   int NDefault=2;
+  if ( ClosureTest ) NDefault = 0;
   
   gStyle->SetOptStat(0);
   gStyle->SetHistLineWidth(2);
@@ -62,7 +67,12 @@ int DoUnfolding(
   
   TH2D* IncTestTruth2D=0;
   if ( ClosureTest ){
+    // What we should be using for closure
     IncTestTruth2D  = (TH2D*) fmeas->Get("IncTestTruth2D");
+    IncTestMeas2D  = (TH2D*) fmeas->Get("IncTestMeas2D");
+    // Sanity Check
+    // IncTestTruth2D  = (TH2D*) fmeas->Get("IncTruth2D")->Clone("IncTestTruth2D");
+    // IncTestMeas2D  = (TH2D*) fmeas->Get("IncMeas2D")->Clone("IncTestMeas2D");
   }
 
   // Load response
@@ -71,7 +81,20 @@ int DoUnfolding(
   TH2D* IncTrainTruth2D  = (TH2D*) ftrain->Get("IncTruth2D");
   // TH2D* RecoilTrainMeas2D  = (TH2D*) ftrain->Get("RecoilMeas2D");
   // TH2D* RecoilTrainTruth2D  = (TH2D*) ftrain->Get("RecoilTruth2D");
-    
+
+  // new TCanvas;
+  // gPad->SetLogy();
+  // // TH1D* a = (TH1D*) IncTrainTruth2D->ProjectionX("a");
+  // // TH1D* b = (TH1D*) IncTestTruth2D->ProjectionX("b");
+  // TH1D* a = (TH1D*) IncTrainTruth2D->ProjectionY("a");
+  // TH1D* b = (TH1D*) IncTestTruth2D->ProjectionY("b");
+  // a->Draw();
+  // b->SetLineColor(kRed);
+  // b->Draw("same");
+  // return 0;  
+
+      
+  
   // Load Pythia8 and Hard Probes comparison
   TFile* fP8 = new TFile( "~/BasicAj/AjResults/UnfoldedPpSystematics_Histos.root", "READ");  
   
@@ -90,17 +113,21 @@ int DoUnfolding(
   // ------
   TString OutFileName = "Results/Unfolded_";
   if ( RebinZg==1 ) OutFileName += "NoRebin_";
-  // OutFileName += nBayes2D;   OutFileName += "_";
-  OutFileName += gSystem->BaseName(ppname); OutFileName += "__With_";
-  OutFileName += gSystem->BaseName(trainname);
+  OutFileName += gSystem->BaseName(ppname);
+  if ( !ClosureTest ){
+    OutFileName += "_With_";
+    OutFileName += gSystem->BaseName(trainname);
+  }
   OutFileName.ReplaceAll(".root","");
   OutFileName.Append(".root");
   TFile* fout = new TFile( OutFileName, "RECREATE");
 
   TString PlotBase = "plots/Unfolded_";
-  // PlotBase += nBayes2D;   PlotBase += "_";
-  PlotBase += gSystem->BaseName(ppname); PlotBase += "__With_";
-  PlotBase += gSystem->BaseName(trainname);
+  PlotBase += gSystem->BaseName(ppname);
+    if ( !ClosureTest ){
+    PlotBase += "_With_";
+    PlotBase += gSystem->BaseName(trainname);
+  }
   PlotBase.ReplaceAll(".root","");
 
   IncTestMeas2D->SetDirectory( gDirectory );
@@ -113,6 +140,17 @@ int DoUnfolding(
   // Unfold 2D
   // ---------
   RooUnfoldResponse* IncPtZgResponse2D = (RooUnfoldResponse*) ftrain->Get("IncPtZgResponse2D");
+  IncPtZgResponse2D->Write();
+  
+  // RooUnfoldResponse* TrueResponse2D = (RooUnfoldResponse*) ftrain->Get("IncPtZgResponse2D");
+  // RooUnfoldResponse* IncPtZgResponse2D = new RooUnfoldResponse;
+  // RooUnfoldResponse* IncBentPtBentZgResponse2D = (RooUnfoldResponse*) ftrain->Get("IncBentPtBentZgResponse2D");
+  // IncPtZgResponse2D->Setup ( TrueResponse2D->Hmeasured(), TrueResponse2D->Htruth(), IncBentPtBentZgResponse2D->Hresponse() );
+  // RooUnfoldResponse* IncPtBentZgResponse2D = (RooUnfoldResponse*) ftrain->Get("IncPtBentZgResponse2D");
+  // IncPtZgResponse2D->Setup ( TrueResponse2D->Hmeasured(), TrueResponse2D->Htruth(), IncPtBentZgResponse2D->Hresponse() );
+  // RooUnfoldResponse* IncBentPtZgResponse2D = (RooUnfoldResponse*) ftrain->Get("IncBentPtZgResponse2D");
+  // IncPtZgResponse2D->Setup ( TrueResponse2D->Hmeasured(), TrueResponse2D->Htruth(), IncBentPtZgResponse2D->Hresponse() );
+
   IncPtZgResponse2D->Write();
   
   cout << endl << " Starting 2D Unfolding " <<  endl ;
@@ -173,24 +211,30 @@ int DoUnfolding(
   // IncTrainMeaspt->SetDirectory( gDirectory );
 
   IncTrainTruthpt->SetAxisRange( 2, 80, "x");
-  IncTrainTruthpt->SetAxisRange( 1e-1, 1e8, "y");
+  if ( !ClosureTest ) IncTrainTruthpt->SetAxisRange( 1e-1, 1e8, "y");
+  else IncTrainTruthpt->SetAxisRange( 1e-11, 1e-1, "y");
   IncTrainTruthpt->SetTitle(";p_{T};arb. units" );
   // tcs->cd();
   
   if ( trainname.Contains ("JP") ){
-    if ( IncTestTruthpt ) IncTestTruthpt->Scale(1e8);
-    if ( IncTrainTruthpt) IncTrainTruthpt->Scale(1e8);
+    if ( ClosureTest ) {
+      // if ( IncTestTruthpt ) IncTestTruthpt->Scale(1e-3);
+      // if ( IncTrainTruthpt) IncTrainTruthpt->Scale(1e-3);
+    } else {
+      if ( IncTestTruthpt ) IncTestTruthpt->Scale(1e8);
+      if ( IncTrainTruthpt) IncTrainTruthpt->Scale(1e8);
+    }
   }
     
   TH1D* ptdummy = (TH1D*) IncTrainTruthpt->Clone("ptdummy");
   ptdummy->SetAxisRange( 2, 80, "x");
-  ptdummy->SetAxisRange( 1e-1, 1e10, "y");
+  if ( !ClosureTest ) ptdummy->SetAxisRange( 1e-1, 1e10, "y");
+  else ptdummy->SetAxisRange( 1e-11, 1e-1, "y");
   ptdummy->Draw("axis");
-
 
   if ( ClosureTest ) IncTestTruthpt->Draw("9histsame");
   else IncTrainTruthpt->Draw("9histsame");
-
+  
   Incmeaspt->Draw("9same");
   IncTrainMeaspt->Draw("9same");
 
@@ -250,6 +294,8 @@ int DoUnfolding(
   gPad->SaveAs( PlotBase + "_IncUnfoldedSpectra.png");
   gPad->SaveAs( PlotBase + "_Everything.pdf");
 
+  // return 0;
+
   // fout->Write(); return 0;
    
   // =========================== Draw Zg ===============================
@@ -294,7 +340,7 @@ int DoUnfolding(
     Inctruth->SetLineStyle(2);
     Inctruth->Draw("9histsame");
     if ( ClosureTest )    leg->AddEntry(Inctruth, "Test Truth");
-    else leg->AddEntry(Inctruth, "Training Truth");	  
+    else leg->AddEntry(Inctruth, "Training Truth");
 
     name = "Incmeas_"; name += int(ptleft+0.01); name += int(ptright+0.01);
     TH1D* Incmeas =
@@ -325,7 +371,15 @@ int DoUnfolding(
 
     TH1D* SysIncunfold=0;
     TH1D* SysIncRatio=0;
-    TH1D* Default=0;
+    // TH1D* Default=0;
+    TH1D* Closure=0;
+    TH1D* ClosureRatio=0;
+    if ( ClosureTest ){
+      // Initialize different systematics histo
+      name = "Closure_"; name += int(ptleft+0.01); name += int(ptright+0.01);
+      Closure = (TH1D*) Inctruth->Clone(name);
+    }
+
     for ( int nBayes2D=1; nBayes2D<=MaxnBayes2D; ++nBayes2D){
       name = "Incunfold_"; name += int(ptleft+0.01); name += int(ptright+0.01); name +="_" ; name+=nBayes2D;
       TH2D* h2 = IncBayesUnfolded[nBayes2D-1];
@@ -341,6 +395,21 @@ int DoUnfolding(
       title +=nBayes2D;
       if (nBayes2D==NDefault && NDefault>0 )      title += " (default)";
       leg->AddEntry(h->GetName(), title);
+
+      if ( ClosureTest ){
+	// Fill ratio histos
+	name = "ClosureRatio_"; name += int(ptleft+0.01); name += int(ptright+0.01); name +="_" ; name+=nBayes2D;
+	ClosureRatio = (TH1D*) Closure->Clone(name);
+	title = "Rel. Unc. Inc pT=";
+	title += int(ptleft+0.01); title +="-";
+	title += int(ptright+0.01); title +=" GeV/c" ;
+	ClosureRatio->SetTitle( title );		
+	ClosureRatio->SetAxisRange( 0.1+0.01,0.5-0.01, "x");
+	ClosureRatio->SetLineColor(nBayes2D+1);
+	ClosureRatio->SetLineStyle(1);
+	ClosureRatio->Divide(Incunfold);
+	// SetErrors ( Closure, Incunfold, ClosureRatio );
+      }
 
       if ( NDefault>0 ) {
 	// Initialize systematics histo
@@ -425,6 +494,42 @@ int DoUnfolding(
       gPad->SaveAs( name + ".png");
       gPad->SaveAs( PlotBase + "_Everything.pdf");
     } 
+
+    if ( ClosureTest ) {
+      new TCanvas;
+      TH1D* rdummy2 = new TH1D( "rdummy2","", 20, 0.05, 0.55);
+      rdummy2->SetAxisRange( 1-0.5, 1+0.5, "y");
+      rdummy2->SetLineStyle(2);
+      rdummy2->SetLineColor(kGray);
+      for ( int i=1; i<rdummy2->GetNbinsX(); ++i ) rdummy2->SetBinContent(i,1);
+      rdummy2->Draw("9hist");
+      // rdummy2->Draw("axis");
+      
+      TString title = "Closure Ratio z_{g}, ";
+      title += int(ptleft+0.01);   title += " < p_{T} < ";
+      title += int(ptright+0.01);  title += " GeV/c";      
+      leg = new TLegend( 0.55, 0.75, 0.89, 0.9, title );
+      leg->SetBorderSize(0);
+      leg->SetLineWidth(10);
+      leg->SetFillStyle(0);
+      leg->SetMargin(0.1);
+
+      for ( int nBayes2D=1; nBayes2D<=MaxnBayes2D; ++nBayes2D){
+	name = "ClosureRatio_"; name += int(ptleft+0.01); name += int(ptright+0.01); name +="_" ; name+=nBayes2D;
+	TH1D* ClosureRatio = (TH1D*) gDirectory->Get(name);
+      	ClosureRatio->Draw("9same");
+	TString title = "Unfolded, N = ";
+	title +=nBayes2D;
+	leg->AddEntry(ClosureRatio->GetName(), title);	
+	ClosureRatio->Draw("9same");
+      }
+      leg->Draw("same");
+      name = PlotBase; name += "_ClosureRatio_";
+      name += int(ptleft+0.01); name += int(ptright+0.01);	
+      gPad->SaveAs( name + ".png");
+      gPad->SaveAs( PlotBase + "_Everything.pdf");
+    } 
+
   }
 
   

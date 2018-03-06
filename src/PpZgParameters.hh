@@ -16,7 +16,7 @@ using fastjet::antikt_algorithm;
 using fastjet::kt_algorithm;
 using fastjet::cambridge_algorithm;
 
-enum INTYPE{ MCTREE, INTREE, INPICO, MCPICO };
+enum INTYPE{ MCTREE, INTREE, INPICO, MCPICO, HERWIGTREE };
 
 // Subtract background?
 enum BGTYPE{ NONE=0, AREA=1, CONSTSUBPRE=2, CONSTSUBPOST=3 };

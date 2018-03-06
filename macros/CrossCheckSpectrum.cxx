@@ -12,8 +12,8 @@ int CrossCheckSpectrum( TString n="2" )
   gStyle->SetTitleBorderSize(0);	//Title box border thickness
 
   
-  TString Defr12data = "  Results/FinePtBinning_Default.root";
-  TString Larger12data = "  Results/Unfolded_ForUnfolding_R0.6_ForPaper_Pp12_JP2_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_R0.6_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_R0.6_McGeant12_NoEff_NoBg_all.root";
+  TString Defr12data = "Results/FinePtBinning_Default.root";
+  TString Larger12data = "Results/Unfolded_ForUnfolding_R0.6_ForPaper_Pp12_JP2_NoEff_NoBgSub__With_AEff0_PtSmear0_ATow0_R0.6_SystGeant12_NoEff_NoBg_JP2_WithMisses_WithFakes_TrainedWith_R0.6_McGeant12_NoEff_NoBg_all.root";
 
   // TString nP8 = "Results/CutUp_ForPaper_Pythia8_NoEff_NoBgSub.root";
   TString nP8 = "Results/Prepped_ForPaper_Pythia8_NoEff_NoBgSub.root";

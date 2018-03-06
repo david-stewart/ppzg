@@ -2,8 +2,22 @@
 
 int PrepPurePythia(){
 
-  TString InName = "Results/Prepped_ForPaper_Pythia8_NoEff_NoBgSub.root";
+  // TString InName = "Results/Prepped_ForPaper_Pythia8_NoEff_NoBgSub.root";
+  // TString InName = "Results/Prepped_R0.2_ForPaper_Pythia8_NoEff_NoBgSub.root";
+  // TString InName = "Results/Prepped_R0.6_ForPaper_Pythia8_NoEff_NoBgSub.root";
+
+  // TString InName = "Results/Prepped_R0.2_ForPaper_Pythia8_NoEff_NoBgSub_NoHadronization_NoMPI.root";
+
   // TString InName = "Results/Prepped_RESHUFFLED_Pythia8_NoEff_NoBgSub.root";
+
+  // TString InName = "Results/Prepped_ForPaper_Herwig_NoEff_NoBgSub.root";
+  // TString InName = "Results/Prepped_R0.2_ForPaper_Herwig_NoEff_NoBgSub.root";
+  // TString InName = "Results/Prepped_R0.6_ForPaper_Herwig_NoEff_NoBgSub.root";
+
+  TString InName = "Results/Prepped_ForPaper_Herwig_NoEff_NoBgSub_NoHadro.root";
+  // TString InName = "Results/Prepped_R0.2_ForPaper_Herwig_NoEff_NoBgSub_NoHadro.root";
+  // TString InName = "Results/Prepped_R0.6_ForPaper_Herwig_NoEff_NoBgSub_NoHadro.root";
+
   TString OutName = InName;
   OutName.ReplaceAll("Prepped","CutUp");
 

@@ -70,15 +70,18 @@ int MatchGeantToPythia (
 			// --- Latest Run 6 --- 
 			// TString PpLevelFile = "Results/AEff0_PtSmear0_ATow0_SystGeant_NoEff_NoBg_HT54.root",
 			// TString McLevelFile = "Results/Recut_McGeant_NoEff_NoBg_MB.root" // Reference (particle level) jets
-			// --- Default for Run 12: ---
-			TString PpLevelFile = "Results/AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_JP2.root",
-			TString McLevelFile = "Results/McGeant12_NoEff_NoBg_all.root" // Reference (particle level) jets
+			// // --- Default for Run 12: ---
+			// TString PpLevelFile = "Results/AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_JP2.root",
+			// TString McLevelFile = "Results/McGeant12_NoEff_NoBg_all.root" // Reference (particle level) jets
 			// // --- MIP or other hadronic correction cross check ---
 			// TString PpLevelFile = "Results/AEff0_PtSmear0_ATow0_SystGeant12_MIP_NoEff_NoBg_JP2.root",
 			// TString McLevelFile = "Results/McGeant12_NoEff_NoBg_all.root" // Reference (particle level) jets
 			// // // --- Different R --- 
 			// TString PpLevelFile = "Results/AEff0_PtSmear0_ATow0_R0.6_SystGeant12_NoEff_NoBg_JP2.root",
 			// TString McLevelFile = "Results/R0.6_McGeant12_NoEff_NoBg_all.root" // Reference (particle level) jets
+			// --- MC Closure ---
+			TString PpLevelFile = "Results/AEff0_PtSmear0_ATow0_SystGeant12_NoEff_NoBg_JP2.root",
+			TString McLevelFile = "Results/McGeant12_NoEff_NoBg_all.root"
 			) {
   gStyle->SetOptStat(0);
   gStyle->SetTitleX(0.1f);
@@ -87,11 +90,13 @@ int MatchGeantToPythia (
   gStyle->SetHistLineWidth(2);
   TLegend* leg = 0;
 
-  bool PrepClosure=false;
+  bool PrepClosure=true;
     
   float MinJetPt = 5.0;
-  bool UseMiss=true;
-  bool UseFakes=true;
+  bool UseMiss=true; // Fakes need careful handling in closure
+  bool UseFakes=true; // Fakes need careful handling in closure
+
+
   // The embedding data has some strange quirks,
   // specifically things like 10 GeV "true" jets reconstructed at 50 GeV
   // My suspicion is that some pythia particles were not properly recorded.
@@ -229,7 +234,11 @@ int MatchGeantToPythia (
   // ---------------------------------------
   TFile* fPtWeights = new TFile( "TsallisScaler.root","READ");
   TH1D* hPtWeights = (TH1D*) fPtWeights->Get("TsallisScaler");
+  // TH1D* hPtWeights = (TH1D*) fPtWeights->Get("CustomScaler");
   hPtWeights->SetTitle("hPtWeights");
+
+  TH2D* TruthpTBendZg = (TH2D*) fPtWeights->Get("TruthpTBendZg");
+  TruthpTBendZg->SetTitle("TruthpTBendZg");
     
   // Output and histograms
   // ----------------------
@@ -242,6 +251,7 @@ int MatchGeantToPythia (
   // Set up response matrix
   // ----------------------
   int nZgBinsTrue = 20;
+  // int nZgBinsTrue = 10;
   float zgminTrue = 0.00;
   float zgmaxTrue = 0.5;
   // int nZgBinsTrue = 20;
@@ -252,6 +262,7 @@ int MatchGeantToPythia (
   float zgmaxMeas = zgmaxTrue;
 
   int nPtBins = 80;
+  // int nPtBins = 16;
   float ptmin=0;
   float ptmax=80;
 
@@ -259,6 +270,7 @@ int MatchGeantToPythia (
   float ptminTrue =  ptmin;
   float ptmaxTrue =  ptmax;
   int nPtBinsMeas =  60;
+  // int nPtBinsMeas =  12;
   float ptminMeas =  0;
   float ptmaxMeas =  60;
 
@@ -498,10 +510,18 @@ int MatchGeantToPythia (
 	}
 
 	float truept = res->first.orig.Pt();
+	float truezg = res->first.zg;
 	float ptweight = hPtWeights->GetBinContent( hPtWeights->FindBin(truept) );
 	IncBentPtResponse.Fill ( res->second.orig.Pt(), res->first.orig.Pt(), mcweight*ptweight );
 	IncBentPtZgResponse2D.Fill( res->second.orig.Pt(), res->second.zg, res->first.orig.Pt(), res->first.zg, mcweight*ptweight );
+	
+	int ptbin = TruthpTBendZg->GetXaxis()->FindBin ( truept );
+	int zgbin = TruthpTBendZg->GetYaxis()->FindBin ( truezg );
+	float zgweight = TruthpTBendZg->GetBinContent( ptbin, zgbin );
+	IncPtBentZgResponse2D.Fill ( res->second.orig.Pt(), res->second.zg, res->first.orig.Pt(), res->first.zg, mcweight*zgweight );
 
+	IncBentPtBentZgResponse2D.Fill ( res->second.orig.Pt(), res->second.zg, res->first.orig.Pt(), res->first.zg, mcweight*ptweight*zgweight );
+		
 	DeltaZgvsPt->Fill ( truept,  res->second.zg-res->first.zg, mcweight);
 	  
 
@@ -521,9 +541,18 @@ int MatchGeantToPythia (
 	  }
 	  
 	  float truept = mcit->orig.Pt();
+	  float truezg = mcit->zg;
 	  float ptweight = hPtWeights->GetBinContent( hPtWeights->FindBin(truept) );
 	  IncBentPtResponse.Miss( mcit->orig.Pt(), mcweight*ptweight );
 	  IncBentPtZgResponse2D.Miss2D( mcit->orig.Pt(), mcit->zg, mcweight*ptweight );
+
+	  int ptbin = TruthpTBendZg->GetXaxis()->FindBin ( truept );
+	  int zgbin = TruthpTBendZg->GetYaxis()->FindBin ( truezg );
+	  float zgweight = TruthpTBendZg->GetBinContent( ptbin, zgbin );
+	  IncPtBentZgResponse2D.Miss2D( mcit->orig.Pt(), mcit->zg, mcweight*zgweight );
+
+	  IncBentPtBentZgResponse2D.Miss2D( mcit->orig.Pt(), mcit->zg, mcweight*zgweight*ptweight );
+	
 	}
       }
     }
@@ -815,6 +844,12 @@ int MatchGeantToPythia (
 
   IncBentPtZgResponse2D.SetName("IncBentPtZgResponse2D");
   IncBentPtZgResponse2D.Write();
+
+  IncPtBentZgResponse2D.SetName("IncPtBentZgResponse2D");
+  IncPtBentZgResponse2D.Write();
+  
+  IncBentPtBentZgResponse2D.SetName("IncBentPtBentZgResponse2D");
+  IncBentPtBentZgResponse2D.Write();
 
   VisualIncPtResponse.SetName("VisualIncPtResponse");
   VisualIncPtResponse.Write();

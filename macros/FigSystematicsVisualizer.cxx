@@ -17,7 +17,7 @@ void SetupDummy ( TH1* hFrame,
 		  float yloffset, float ytoffset,
 		  float ytickbase, int ndivy);
 
-int SystematicsVisualizer()
+int FigSystematicsVisualizer()
 {
 
   

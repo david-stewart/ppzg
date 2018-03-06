@@ -33,10 +33,10 @@
 #include <cmath>
 #include <exception>
 
-#include "RooUnfoldResponse.h"
-#include "RooUnfoldBayes.h"
-#include "RooUnfoldSvd.h"
-#include "RooUnfoldTUnfold.h"
+// #include "RooUnfoldResponse.h"
+// #include "RooUnfoldBayes.h"
+// #include "RooUnfoldSvd.h"
+// #include "RooUnfoldTUnfold.h"
 
 using namespace std;
 
@@ -44,13 +44,16 @@ int PrepUnfolding (   // Input
 		   // -----
 		   // TString PpLevelFile = "Results/Recut_Pp_HT54_MIP_NoEff_NoBgSub.root" // pp-like events
 		   // --- Use this for Run 12: ---
-		   TString PpLevelFile = "Results/ForPaper_Pp12_JP2_NoEff_NoBgSub.root" // pp-like events
+		   // TString PpLevelFile = "Results/ForPaper_Pp12_JP2_NoEff_NoBgSub.root" // pp-like events
 		   // --- MIP or other hadronic correction cross check ---
 		   // TString PpLevelFile = "Results/ForPaper_Pp12_JP2_MIP_NoEff_NoBgSub.root" // pp-like events
 		   // --- Pythia8 ---
 		   // TString PpLevelFile = "Results/ForPaper_Pythia8_NoEff_NoBgSub.root"
+		   // --- Herwig ---
+		   // TString PpLevelFile = "Results/ForPaper_Herwig_NoEff_NoBgSub.root"
 		   // TEST
 		   // TString PpLevelFile = "Results/RESHUFFLED_Pythia8_NoEff_NoBgSub.root"
+		   TString PpLevelFile = "Results/var_RESHUFFLED_Pp12_JP2_NoEff_NoBgSub.root" // pp-like events
 		   // TString PpLevelFile = "Results/R0.6_ForPaper_Pp12_JP2_NoEff_NoBgSub.root"
   		      ) {
   gStyle->SetOptStat(0);
@@ -70,7 +73,7 @@ int PrepUnfolding (   // Input
   // Output
   // ------
   TString OutFileName = "Results/ForUnfolding_";
-  if ( PpLevelFile.Contains ("ythia") ) OutFileName = "Results/Prepped_";
+  if ( PpLevelFile.Contains ("ythia") || PpLevelFile.Contains ("erwig") ) OutFileName = "Results/Prepped_";
   OutFileName += gSystem->BaseName(PpLevelFile);
   
 
@@ -185,6 +188,10 @@ int PrepUnfolding (   // Input
   if ( PpLevelFile.Contains ("ythia") )
     PythiaTruth2D  = new TH2D( "PythiaTruth2D", "PythiaTruth z_{g} vs. p_{T};p_{T};z_{g}", nPtBinsTrue, ptminTrue, ptmaxTrue, nZgBinsTrue, zgminTrue, zgmaxTrue);
 
+  TH2D* HerwigTruth2D=0;
+  if ( PpLevelFile.Contains ("erwig") )
+    HerwigTruth2D  = new TH2D( "HerwigTruth2D", "HerwigTruth z_{g} vs. p_{T};p_{T};z_{g}", nPtBinsTrue, ptminTrue, ptmaxTrue, nZgBinsTrue, zgminTrue, zgmaxTrue);
+
   // ------------------------
   // Loop over measured level
   // ------------------------
@@ -215,6 +222,7 @@ int PrepUnfolding (   // Input
 	RatioPtG->Fill( ppjet->Pt(), ppgjet->Pt() / ppjet->Pt(), ppweight );
 
 	if ( PythiaTruth2D ) PythiaTruth2D->Fill( ppjet->Pt(), ppzg[j], ppweight );
+	if ( HerwigTruth2D ) HerwigTruth2D->Fill( ppjet->Pt(), ppzg[j], ppweight );
       }
     }
 

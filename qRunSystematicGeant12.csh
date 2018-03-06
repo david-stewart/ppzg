@@ -62,24 +62,24 @@ setenv pcmax 10000
 setenv Nevent -1
 
 setenv pcmin 0.2
-setenv R 0.4
+setenv R 0.6
 setenv bg 0
 setenv chainname JetTree
 setenv intype pico
 setenv etacut 1
 setenv trig ppJP2
 
-# setenv hadcorr 0.99999
-# setenv ht -1
-# setenv OutBase SystGeant12_NoEff_NoBg_JP2
+setenv hadcorr 0.99999
+setenv ht -1
+setenv OutBase SystGeant12_NoEff_NoBg_JP2
 
 # setenv hadcorr 0.5
 # setenv ht -1
 # setenv OutBase SystGeant12_HC50_NoEff_NoBg_JP2
 
-setenv hadcorr -1
-setenv ht -1
-setenv OutBase SystGeant12_MIP_NoEff_NoBg_JP2
+# setenv hadcorr -1
+# setenv ht -1
+# setenv OutBase SystGeant12_MIP_NoEff_NoBg_JP2
 
 if ( $R != 0.4 ) then
     setenv OutBase R${R}_$OutBase
@@ -109,12 +109,12 @@ set ResultDir   = Results/Pieces
 set submitted=0
 
 foreach File ( Data/AddedEmbedPythiaRun12pp200/Cleanpp12*root )
-    # foreach Tow ( 0 -1 1 )
-    # 	foreach Smear ( 0 1 )
-    # 	    foreach Eff ( 0 -1 )
-    foreach Tow ( 0 )
-    	foreach Smear ( 0 )
-    	    foreach Eff ( 0 )
+    foreach Tow ( 0 -1 1 )
+    	foreach Smear ( 0 1 )
+    	    foreach Eff ( 0 -1 )
+    # foreach Tow ( 0 )
+    # 	foreach Smear ( 0 )
+    # 	    foreach Eff ( 0 )
 
 		@ TowEff = $Tow * $Eff
     		@ TowSmear = $Tow * $Smear
@@ -152,13 +152,11 @@ foreach File ( Data/AddedEmbedPythiaRun12pp200/Cleanpp12*root )
 		# echo "Logging errors to " $ErrFile
 		# echo to resubmit:
 
-		set qcommand = "qsub -V -q  mwsuq -l mem=4gb -W umask=0022 -r y -N SystGeantGroom -o $LogFile -e $ErrFile -- ${ExecPath}/qwrap.sh ${ExecPath} $Exec $Args"
-		# set qcommand = "qsub -V -q  erhiq -l mem=4gb -W umask=0022 -r y -N SystGeantGroom -o $LogFile -e $ErrFile -- ${ExecPath}/qwrap.sh ${ExecPath} $Exec $Args"
+		# set qcommand = "qsub -V -q  mwsuq -l mem=4gb -W umask=0022 -r y -N SystGeantGroom -o $LogFile -e $ErrFile -- ${ExecPath}/qwrap.sh ${ExecPath} $Exec $Args"
+		set qcommand = "qsub -V -q  erhiq -l mem=4gb -W umask=0022 -r y -N SystGeantGroom -o $LogFile -e $ErrFile -- ${ExecPath}/qwrap.sh ${ExecPath} $Exec $Args"
 		set qresult=`$qcommand` || exit
 		echo $qresult
 		echo $qresult $qcommand >> $rerunlist
-		#qsub -V -q  erhiq -l mem=4gb -W umask=0022 -r y -N SystGeantGroom -o $LogFile -e $ErrFile -- ${ExecPath}/qwrap.sh ${ExecPath} $Exec $Args
-		#qsub -V -q mwsuq -l mem=4gb -W umask=0022 -r y -N SystGeantGroom -o $LogFile -e $ErrFile -- ${ExecPath}/qwrap.sh ${ExecPath} $Exec $Args
 		@ submitted = $submitted + 1
 		echo
 	    end

@@ -128,6 +128,10 @@ PpZgAnalysis::PpZgAnalysis ( const int argc, const char** const argv )
 	pars.intype = INTREE;
 	continue;
       }
+      if ( *parg == "herwigtree" ){
+	pars.intype = HERWIGTREE;
+	continue;
+      }
       argsokay=false;
       break;
     } else if ( arg == "-embintype" ){
@@ -198,6 +202,11 @@ PpZgAnalysis::PpZgAnalysis ( const int argc, const char** const argv )
       if ( *parg != "0" && *parg != "1" ){ argsokay=false; break; }
       forcedgeantnum=true;
       pars.UseGeantNumbering = bool ( atoi(parg->data()));      
+    } else if ( arg == "-jetnef" ){
+      if ( ++parg == arguments.end() ){ argsokay=false; break; }
+      pars.MaxJetNEF = atof( parg->data());
+      cout << "Setting Max Jet NEF to " << pars.MaxJetNEF << endl;
+      if ( pars.MaxJetNEF<0 || pars.MaxJetNEF>1 ){ argsokay=false; break; }      
     } else {
       argsokay=false;
       break;
@@ -214,7 +223,7 @@ PpZgAnalysis::PpZgAnalysis ( const int argc, const char** const argv )
       	 << " [-Embbg EmbBackgroundSubtraction (NONE=0, AREA=1, CONSTSUBPRE=2, CONSTSUBPOST=3)]" << endl
       	 << " [-i infilepattern]" << endl
       	 << " [-c chainname]" << endl
-      	 << " [-intype pico|mcpico|tree|mctree]" << endl
+      	 << " [-intype pico|mcpico|tree|mctree|herwigtree]" << endl
 	 << " [-trig trigger name (e.g. HT)]" << endl
       	 << " [-ht offline high tower cut]" << endl
 	 << " [-ht snap to high tower true|false ]" << endl
@@ -395,6 +404,16 @@ bool PpZgAnalysis::InitChains(){
     
   }
   
+  if ( pars.intype==HERWIGTREE ){
+    assert ( Events->GetEntries()>0 && "Something went wrong loading events.");
+    NEvents=min(NEvents,Events->GetEntries() );
+    
+    pFullEvent = new TClonesArray("TStarJetVector");
+    Events->GetBranch("HerwigParticles")->SetAutoDelete(kFALSE);
+    Events->SetBranchAddress("HerwigParticles", &pFullEvent);
+        
+  }
+
   // For picoDSTs
   // -------------
   if ( pars.intype==INPICO || pars.intype==MCPICO ){
@@ -518,6 +537,7 @@ EVENTRESULT PpZgAnalysis::RunEvent (){
     // =====================================================
   case INTREE :
   case MCTREE :
+  case HERWIGTREE :
     if ( evi>= NEvents ) {
       return EVENTRESULT::ENDOFINPUT;
       break;
@@ -555,9 +575,11 @@ EVENTRESULT PpZgAnalysis::RunEvent (){
   // ---------------------------------
   bool HasManualHighTower=false;
   if ( pars.intype==INPICO ) HasManualHighTower=true;
-  
+
   for ( int i=0 ; i<pFullEvent->GetEntries() ; ++i ){
     sv = (TStarJetVector*) pFullEvent->At(i);
+    // cout <<  sv->mc_pdg_pid() << endl; 
+
     // Ensure kinematic similarity
     if ( sv->Pt()< pars.PtConsMin )             continue;
     if ( fabs( sv->Eta() )>pars.EtaConsCut )    continue;
@@ -565,7 +587,7 @@ EVENTRESULT PpZgAnalysis::RunEvent (){
     // Manual high tower cut
     // WARNING: This needs to be adapted if we want to adapt the HT cut to a shift
     if (
-	( pars.intype==MCPICO || pars.intype==MCTREE || pars.intype==INTREE )
+	( pars.intype==MCPICO || pars.intype==MCTREE || pars.intype==HERWIGTREE || pars.intype==INTREE )
 	&& sv->GetCharge()==0
 	&& fabs(sv->Eta())<1.0
 	&& sv->Pt()>pars.ManualHtCut
@@ -598,16 +620,17 @@ EVENTRESULT PpZgAnalysis::RunEvent (){
     // TOWERS
     // ------
     // Shift gain
-    if ( !sv->GetCharge()) {      
+    if ( !sv->GetCharge()) {
       QA_TowerEt->Fill ( sv->GetTowerID(), sv->Et() );
       (*sv) *= pars.fTowScale; // for systematics
     }
-
+ 
     particles.push_back( PseudoJet (*sv ) );
     particles.back().set_user_info ( new JetAnalysisUserInfo( 3*sv->GetCharge(),"",sv->GetTowerID() ) );
 
 
   }
+  // cout << pFullEvent->GetEntries() << "  " <<  particles.size() << endl;
   
   if ( !HasManualHighTower) {
     // cerr << "Skipped due to manual ht cut" << endl;
@@ -622,6 +645,12 @@ EVENTRESULT PpZgAnalysis::RunEvent (){
     weight=sigmaGen->GetVal();
   }
   
+  // For HERWIG, have e-by-e cross section
+  // -------------------------------------
+  if ( Events->GetLeaf("weight") ){
+    weight=Events->GetLeaf("weight")->GetValue();
+  }
+
   // For GEANT data
   // --------------
   if ( pars.InputName.Contains("Geant") ){
@@ -744,12 +773,10 @@ EVENTRESULT PpZgAnalysis::RunEvent (){
   // }
   
   if ( JAResult.size()==0 ) {
+    // cout << "Nothing found" << endl;
     return EVENTRESULT::NOJETS;
-  }
+  } 
 
-  // cout << "-----------------------" << endl;
-  // cout << "We have jets. " << endl;
-  
   contrib::SoftDrop sd( pars.beta, pars.z_cut);
   if ( pars.CustomRecluster ) {
     sd.set_reclustering(true, recluster);
@@ -765,26 +792,26 @@ EVENTRESULT PpZgAnalysis::RunEvent (){
   // contrib::SoftDrop::_verbose=true;
 
   int njets = JAResult.size();
-  
+  // cout << "-----------------------" << endl;
+  // cout << "We have " << njets << " jets. " << endl;
+
   for (unsigned ijet = 0; ijet < JAResult.size(); ijet++) {
     PseudoJet& CurrentJet = JAResult[ijet];
     // Check whether it fulfills neutral energy fraction criteria
     // This could be done earlier in the jet selector
-    if ( pars.MaxJetNEF<1.0 ){
-      PseudoJet NeutralPart = join ( OnlyNeutral( CurrentJet.constituents() ) );
-      if ( NeutralPart.pt()  / CurrentJet.pt() > pars.MaxJetNEF ) continue;
-
-      PseudoJet ChargedPart = join ( OnlyCharged( CurrentJet.constituents() ) );
-      double q = 0;
-      for ( PseudoJet& c : ChargedPart.constituents() ){
-	q+= c.user_info<JetAnalysisUserInfo>().GetQuarkCharge();
-      }
-
-      JetAnalysisUserInfo* userinfo = new JetAnalysisUserInfo( q );
-      // Save neutral energy fraction in multi-purpose field
-      userinfo->SetNumber(NeutralPart.pt()  / CurrentJet.pt());
-      CurrentJet.set_user_info ( userinfo );
+    PseudoJet NeutralPart = join ( OnlyNeutral( CurrentJet.constituents() ) );
+    PseudoJet ChargedPart = join ( OnlyCharged( CurrentJet.constituents() ) );
+    double q = 0;
+    for ( PseudoJet& c : ChargedPart.constituents() ){
+      q+= c.user_info<JetAnalysisUserInfo>().GetQuarkCharge();
     }
+    
+    JetAnalysisUserInfo* userinfo = new JetAnalysisUserInfo( q );
+    // Save neutral energy fraction in multi-purpose field
+    userinfo->SetNumber(NeutralPart.pt()  / CurrentJet.pt());
+    CurrentJet.set_user_info ( userinfo );
+
+    if ( pars.MaxJetNEF<1.0 &&  NeutralPart.pt()  / CurrentJet.pt() > pars.MaxJetNEF ) continue;
 
     // DEBUG - Recluster now
     // Well, good-ish. That doesn't make a difference in pt
@@ -803,34 +830,56 @@ EVENTRESULT PpZgAnalysis::RunEvent (){
 
     // // DEBUG
     // vector<PseudoJet> temp=reshuffle (CurrentJet.constituents());
-    // // JetDefinition TempJetDef ( pars.LargeJetAlgorithm, 1.0 );
-    // // JetAnalyzer TempJA (temp, TempJetDef);
-    // JetDefinition TempJetDef    = JetDefinition( fastjet::cambridge_algorithm, pars.R );
+    // if ( CurrentJet.constituents().size() != temp.size() ){
+    //   cerr << " !!!" << CurrentJet.constituents().size() << "  " << temp.size() << endl;
+    //   throw -1;
+    // }
+    // JetDefinition TempJetDef    = JetDefinition( fastjet::cambridge_algorithm, 3*pars.R ); // gotta catch them all
     // JetAnalyzer TempJA (temp, TempJetDef);
-    // PseudoJet newjet = sorted_by_pt( select_jet ( JA.inclusive_jets() ) ).at(0);    
+    // vector<PseudoJet> shuffled = sorted_by_pt( select_jet ( TempJA.inclusive_jets() ) );
+    // // if ( shuffled.size() !=1 ) cerr << shuffled.size() << endl;
+    // // if ( shuffled.size() >1 ) cerr << " --> " << CurrentJet.pt() << "  " << shuffled.at(0).pt() << "  " << shuffled.at(1).pt()  << endl;
+    // // if ( shuffled.size() >1 ) cerr << " --> " << CurrentJet.eta() << "  " << shuffled.at(0).eta() << "  " << shuffled.at(1).eta()  << endl;
+    // // if ( shuffled.size() >1 ) cerr << " --> " << CurrentJet.constituents().size() << "  " << shuffled.at(0).constituents().size() << "  " << shuffled.at(1).constituents().size() << endl;
+    // if ( shuffled.size() ==0 ) continue;
+    // PseudoJet newjet = shuffled.at(0);
     // PseudoJet sd_jet = sd( newjet );
     // // END DEBUG
-
+    
+    // cout << CurrentJet.constituents().size() << endl;
     // cout << " Grooming Result: " << CurrentJet.pt() << "  --> " << sd_jet.pt() << endl << endl;
     if ( sd_jet == 0){
-      // cout <<  " FOREGROUND Original Jet:   " << CurrentJet << endl;
-      // if ( pBackgroundSubtractor ) cout <<  " FOREGROUND rho A: " << JA.GetBackgroundEstimator()->rho() * CurrentJet.area() << endl;	  
-      // if ( pBackgroundSubtractor ) cout <<  " FOREGROUND Subtracted Jet: " << (*pBackgroundSubtractor)( CurrentJet ) << endl;	  
-      // cout << " --- Skipped. Something caused SoftDrop to return 0 ---" << endl;
+      cout <<  " FOREGROUND Original Jet:   " << CurrentJet << endl;
+      if ( pBackgroundSubtractor ) cout <<  " FOREGROUND rho A: " << JA.GetBackgroundEstimator()->rho() * CurrentJet.area() << endl;	  
+      if ( pBackgroundSubtractor ) cout <<  " FOREGROUND Subtracted Jet: " << (*pBackgroundSubtractor)( CurrentJet ) << endl;	  
+      cout << " --- Skipped. Something caused SoftDrop to return 0 ---" << endl;
       continue;
     }
-    // 	// Use groomed==original in this case. Not ideal, but probably the best choice.
+
     if ( pars.SubtractBg == AREA) {
       // cout << "hello subtractor " << ijet << endl;
       CurrentJet = (*pBackgroundSubtractor)( CurrentJet );	
     }
     double zg = sd_jet.structure_of<contrib::SoftDrop>().symmetry();
-    //CurrentResult = GroomingResultStruct ( CurrentJet, sd_jet, zg);
-    // GroomingResult.push_back ( GroomingResultStruct ( &CurrentJet, &sd_jet, zg) );
+
+    // if ( zg==0 ){
+    //   // cout << CurrentJet.constituents().size() << endl;
+    //   if ( CurrentJet.constituents().size() >5 ){
+    // 	cout << " === " << endl;
+    // 	for ( auto c : CurrentJet.constituents() ) cout << c << endl;
+    // 	cout << " ====== " << endl;
+    // 	cout << CurrentJet << endl;
+    // 	cout << sd_jet << endl;
+    //   }
+    // }
+
     GroomingResult.push_back ( GroomingResultStruct ( CurrentJet, sd_jet, zg) );
 
     // cout << CurrentJet.pt() - sd_jet.pt() << endl;
-    if ( CurrentJet.pt() - sd_jet.pt() < -1e-7 ) cout << CurrentJet.pt() - sd_jet.pt() << endl;
+    // Shouldn't be negative
+    if ( CurrentJet.pt() - sd_jet.pt() < -1e-7  && false )
+      cout << "CurrentJet.pt() is smaller than sd_jet.pt()"
+	   << CurrentJet.pt() - sd_jet.pt() << endl;
     
     
   }  
@@ -1111,22 +1160,55 @@ ostream & operator<<(ostream & ostr, const PseudoJet& jet) {
 // DELETE ME, ONLY FOR EXPERIMENTING
 
 vector<PseudoJet> reshuffle ( const vector<PseudoJet> orig ){
-  vector< pair<double,double> > phieta;
 
-  vector<PseudoJet> shuffled;
+  // vector< pair<double,double> > phieta;
+  // vector<PseudoJet> shuffled;
+  // for ( auto j : orig ){
+  //   phieta.push_back ( pair<double,double> (j.phi(), j.eta()) );
+  //   shuffled.push_back ( j );
+  // }
+
+  // std::random_device rd;
+  // std::mt19937 g(rd());
+  // std::shuffle ( phieta.begin(), phieta.end(), g );
+  // // std::random_shuffle ( phieta.begin(), phieta.end() );
+    
+  // for ( int i=0 ; i<shuffled.size() ; ++i ){
+  //   PseudoJet& j = shuffled.at(i);
+  //   j.reset_PtYPhiM ( j.pt(), phieta.at(i).second, phieta.at(i).first, j.m() );
+  // }
+
+  // vector< double > pt;
+  // vector<PseudoJet> shuffled;
+  // for ( auto j : orig ){
+  //   pt.push_back ( j.pt() );
+  //   shuffled.push_back ( j );
+  // }
+
+  // std::random_device rd;
+  // std::mt19937 g(rd());
+  // std::shuffle ( pt.begin(), pt.end(), g );
+
+  // for ( int i=0 ; i<shuffled.size() ; ++i ){
+  //   PseudoJet& j = shuffled.at(i);
+  //   j.reset_PtYPhiM ( pt.at(i), j.eta(), j.phi(), j.m() );
+  // }
+
+  vector< double > pt;
   for ( auto j : orig ){
-    phieta.push_back ( pair<double,double> (j.phi(), j.eta()) );
-    shuffled.push_back ( j );
+    pt.push_back ( j.pt() );
   }
 
   std::random_device rd;
   std::mt19937 g(rd());
-  std::shuffle ( phieta.begin(), phieta.end(), g );
-  // std::random_shuffle ( phieta.begin(), phieta.end() );
-    
-  for ( int i=0 ; i<shuffled.size() ; ++i ){
-    PseudoJet& j = shuffled.at(i);
-    j.reset_PtYPhiM ( j.pt(), phieta.at(i).second, phieta.at(i).first, j.m() );
+  std::shuffle ( pt.begin(), pt.end(), g );
+
+  vector<PseudoJet> shuffled;
+
+  for ( int i=0 ; i<orig.size() ; ++i ){
+    PseudoJet j = orig.at(i);
+    j.reset_PtYPhiM ( pt.at(i), j.eta(), j.phi(), j.m() );
+    shuffled.push_back( j );
   }
 
   return shuffled;
